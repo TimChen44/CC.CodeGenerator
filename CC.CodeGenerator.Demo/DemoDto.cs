@@ -1,21 +1,32 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace CC.CodeGenerator.Demo
 {
-    [Dto(DBContext = "DBContext", Entity = typeof(EntityDemo),KeyId = "MyProperty1"), Display()]
-
-    public partial class DemoDto
+    //[Dto(Entity = typeof(EntityDemo),KeyId = "MyProperty1"), Display()]
+    [Dto(DBContext = "DBContext", Entity = typeof(EntityDemo), KeyId = "MyProperty1")]
+    public partial record DemoDto
     {
+        [Ignore]
         public int MyProperty1 { get; set; }
 
-        public int BB { get; set; }
+        [DisplayName("用户角色")]
+        public Guid RoleId { get; set; }
+        [DisplayName("系统名称")]
+        public string SystemName { get; set; } 
+        [DisplayName("角色名称")]
+        public string Name { get; set; }
+        [DisplayName("描述")]
+        public string? Dept { get; set; }
 
-        public int AAA { get; set; }
+        public IEnumerable<EntityDemo> Features { get; set; } = new List<EntityDemo>();
 
         public void Mod()
         {
 
         }
+
     }
 
     public partial class EntityDemo
@@ -35,7 +46,7 @@ namespace CC.CodeGenerator.Demo
 
     public class DBContext
     {
-
+        public IQueryable<EntityDemo> EntityDemo { get; set; }
     }
 }
 
