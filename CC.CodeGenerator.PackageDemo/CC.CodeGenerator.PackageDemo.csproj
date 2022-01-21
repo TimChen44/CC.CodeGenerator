@@ -11,4 +11,8 @@
     <PackageReference Include="CC.CodeGenerator" Version="1.0.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CC.CodeGenerator.Demo.Entity\CC.CodeGenerator.Demo.Entity.csproj" />
+  </ItemGroup>
+
 </Project>

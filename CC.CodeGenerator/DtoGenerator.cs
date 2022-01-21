@@ -30,6 +30,21 @@ public class DtoGenerator : ISourceGenerator
         context.RegisterForSyntaxNotifications(() => new DtoSyntaxReceiver());
     }
 
+    class DtoSyntaxReceiver : ISyntaxReceiver
+    {
+        //需要生成Dto操作代码的类
+        public List<TypeDeclarationSyntax> CandidateClasses { get; } = new List<TypeDeclarationSyntax>();
+
+        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+        {
+            if ((syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
+                || (syntaxNode is RecordDeclarationSyntax rds && rds.AttributeLists.Count > 0))//有特性的类都进行候选，将来可以筛选出只有需要的特性的类
+            {
+                CandidateClasses.Add((TypeDeclarationSyntax)syntaxNode);
+            }
+        }
+    }
+
     public void Execute(GeneratorExecutionContext context)
     {
         //生成DtoAttribute
@@ -54,22 +69,6 @@ public class DtoGenerator : ISourceGenerator
 
     }
 
-    class DtoSyntaxReceiver : ISyntaxReceiver
-    {
-        //需要生成Dto操作代码的类
-        public List<TypeDeclarationSyntax> CandidateClasses { get; } = new List<TypeDeclarationSyntax>();
-
-        public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
-        {
-            if ((syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
-                || (syntaxNode is RecordDeclarationSyntax rds && rds.AttributeLists.Count > 0))//有特性的类都进行候选，将来可以筛选出只有需要的特性的类
-            {
-                CandidateClasses.Add((TypeDeclarationSyntax)syntaxNode);
-            }
-        }
-    }
-
-
     /// <summary>
     /// 创建DtoAttribute代码
     /// </summary>
@@ -84,11 +83,9 @@ namespace CC.CodeGenerator;
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public class DtoAttribute: Attribute
 {
-    public string DBContext { get; set; }
+    public string Context { get; set; }
 
     public Type Entity { get; set; }
-
-    public string KeyId { get; set; }
 }
 
 //标记属性是否需要忽略
@@ -115,35 +112,34 @@ public class IgnoreAttribute : Attribute
         //获得dto成员列表
         var dtoProperties = dtoSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
             .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.IgnoreAttribute") == false)//排除忽略属性
-            .Where(x =>
-            {
-                var type = ((Microsoft.CodeAnalysis.IPropertySymbol)x).Type;
-                if (type?.BaseType?.Name == "ValueType") return true;
-                if (type?.MetadataName == "String") return true;
-                return false;
-            })//排除非值类型的属性
+            .Where(x => x.Kind == SymbolKind.Property)//只保留属性
+            .Cast<IPropertySymbol>()
+            .Where(x => x.Type?.BaseType?.Name == "ValueType" || x.Type?.MetadataName == "String")//排除非值类型的属性
             .ToList();
 
         //获得DBContext的名字
-        var contextName = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "DBContext").Value.Value?.ToString();
+        var contextName = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Context").Value.Value?.ToString();
 
         //获得实体类型
         ITypeSymbol entitySymbol = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Entity").Value.Value as ITypeSymbol;
-        var entityProperties = entitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).ToList();
+        var entityProperties = entitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
 
         //获得实体主键
-        var entityKeyId = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "KeyId").Value.Value?.ToString();
+        var entityKeyIds = entityProperties.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
 
         var typeName = (dtoClass is ClassDeclarationSyntax) ? "class" : "record";
 
         //组装代码
         string dtoCode = @$"
+using CC.Core;
+{ (string.IsNullOrWhiteSpace(contextName) ? "" : "using Microsoft.EntityFrameworkCore;")}
+
 namespace {dtoSymbol.ContainingNamespace.ToDisplayString()};
 
 public partial {typeName} {dtoSymbol.Name}
 {{
 
-#region 数据赋值
+    #region 数据赋值
 
 {CopyFormDto(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
 
@@ -151,39 +147,30 @@ public partial {typeName} {dtoSymbol.Name}
 
 {EntitySelect(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
 
-#endregion
+    #endregion
 
-#region 数据库操作
+    #region 数据库操作
 
-{FirstQueryable(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyId)}
+{New(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{ReLoad(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyId)}
+{Load(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Save(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyId)}
+{FirstQueryable(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Delete(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyId)}
+{ReLoad(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-#endregion 
+{Save(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+
+{Delete(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+
+    #endregion 
 }}
 ";
 
         context.AddSource($@"{dtoSymbol.ContainingNamespace.ToDisplayString()}.{dtoSymbol.Name}.cs", SourceText.From(dtoCode, Encoding.UTF8));
 
     }
-
-    private string FirstQueryable(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, string keyId)
-    {
-        if (string.IsNullOrWhiteSpace(contextName) || string.IsNullOrWhiteSpace(keyId)) return null;
-
-        return @$"
-    /// <summary>
-    /// 主键检索
-    /// </summary>
-    public IQueryable<{entitySymbol.Name}> FirstQueryable({contextName} context)
-    {{
-        return context.{entitySymbol.Name}.Where(x => x.{keyId} == this.{keyId});
-    }}";
-    }
+    #region 数据赋值
 
     // 从Dto赋值值到自己
     private string CopyFormDto(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
@@ -246,7 +233,7 @@ public partial {typeName} {dtoSymbol.Name}
     /// <summary>
     /// EntitySelect
     /// </summary>
-    public static IQueryable<{dtoSymbol.Name}> SelectQueryable(IQueryable<{entitySymbol.Name}> query)
+    public static IQueryable<{dtoSymbol.Name}> SelectGen(IQueryable<{entitySymbol.Name}> query)
     {{
         return query.Select(x => new {dtoSymbol.Name}()
         {{
@@ -256,10 +243,82 @@ public partial {typeName} {dtoSymbol.Name}
 
     }
 
-    //ReLoad 重新加载
-    private string ReLoad(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, string keyId)
+    #endregion
+
+    #region 数据库操作
+
+    private string New(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<IPropertySymbol> keyIds)
     {
-        if (string.IsNullOrWhiteSpace(contextName) || string.IsNullOrWhiteSpace(keyId)) return null;
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
+
+        List<string> keyInits = new List<string>();
+        foreach (var keyId in keyIds)
+        {
+            keyInits.Add($"{keyId.Name} = Guid.NewGuid()");
+        }
+        var keyInit = keyInits.Aggregate((a, b) => a + ", " + b);
+
+        return @$"
+    /// <summary>
+    /// 创建新实体[模拟工厂模式]
+    /// </summary>
+    /// <returns></returns>
+    public static {dtoSymbol.Name} NewGen()
+    {{
+        return new {dtoSymbol.Name}() {{ {keyInit} }};
+    }}";
+    }
+
+    private string Load(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<IPropertySymbol> keyIds)
+    {
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
+
+        List<string> keyParameters = new List<string>();
+        List<string> keyCompares = new List<string>();
+        foreach (var keyId in keyIds)
+        {
+            keyParameters.Add($"{keyId.Type.Name} {keyId.Name}");
+            keyCompares.Add($"x.{keyId.Name} == {keyId.Name}");
+        }
+        var keyParameter = keyParameters.Aggregate((a, b) => a + ", " + b);
+        var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
+
+        return @$"
+    /// <summary>
+    /// 载入已有实体
+    /// </summary>
+    /// <returns></returns>
+    public static {dtoSymbol.Name}? LoadGen({contextName} context, {keyParameter})
+    {{
+        return SelectGen(context.{entitySymbol.Name}.Where(x => {keyCompare})).FirstOrDefault();
+    }}";
+    }
+
+    private string FirstQueryable(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
+    {
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
+
+        List<string> keyCompares = new List<string>();
+        foreach (var keyId in keyIds)
+        {
+            keyCompares.Add($"x.{keyId.Name} == this.{keyId.Name}");
+        }
+        var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
+
+        return @$"
+    /// <summary>
+    /// 主键检索
+    /// </summary>
+    public IQueryable<{entitySymbol.Name}> FirstQueryable({contextName} context)
+    {{
+        return context.{entitySymbol.Name}.Where(x => {keyCompare});
+    }}";
+    }
+
+    //ReLoad 重新加载
+    private string ReLoad(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
+    {
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
 
         return @$"
     /// <summary>
@@ -267,7 +326,7 @@ public partial {typeName} {dtoSymbol.Name}
     /// </summary>
     public Result ReLoadGen({contextName} context)
     {{
-        var dto = SelectQueryable(FirstQueryable(context)).FirstOrDefault();
+        var dto = SelectGen(FirstQueryable(context)).FirstOrDefault();
         if (dto == null)
         {{
             return new Result(""内容不存在"", false);
@@ -277,11 +336,10 @@ public partial {typeName} {dtoSymbol.Name}
     }}";
     }
 
-
     //Save 保存
-    private string Save(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, string keyId)
+    private string Save(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
     {
-        if (string.IsNullOrWhiteSpace(contextName) || string.IsNullOrWhiteSpace(keyId)) return null;
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
         if (entitySymbol == null) return null;
 
         return @$"
@@ -294,7 +352,6 @@ public partial {typeName} {dtoSymbol.Name}
         if (entity == null)
         {{
             entity = new {entitySymbol.Name}();
-            entity.{keyId} = this.{keyId};  //主键
             context.Add(entity);
         }}
         CopyToEntity(entity);
@@ -303,9 +360,9 @@ public partial {typeName} {dtoSymbol.Name}
     }
 
     //Delete 删除
-    private string Delete(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, string keyId)
+    private string Delete(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
     {
-        if (string.IsNullOrWhiteSpace(contextName) || string.IsNullOrWhiteSpace(keyId)) return null;
+        if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
 
         return @$"
     /// <summary>
@@ -323,5 +380,5 @@ public partial {typeName} {dtoSymbol.Name}
     }}";
     }
 
+    #endregion 
 }
-

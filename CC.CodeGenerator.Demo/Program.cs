@@ -1,6 +1,9 @@
-﻿using CC.CodeGenerator.Demo;
+﻿global using CC.Core;
+global using CC.CodeGenerator.Demo.Entity;
+using CC.CodeGenerator.Demo;
 
-Console.WriteLine("Hello, World!");
 
-DemoDto d = new DemoDto();
-d.CopyFormDto(null );
+
+
+var p = new PeopleDto();
+p.CopyFormDto(p);
