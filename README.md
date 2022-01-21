@@ -6,11 +6,11 @@
 ## 1. 安装
 
 ### 安装代码生成包以及支持包
-```cmd
+```powershell
 Install-Package CC.CodeGenerator
 ```
 
-```cmd
+```shell
 Install-Package CC.NetCore
 ```
 
