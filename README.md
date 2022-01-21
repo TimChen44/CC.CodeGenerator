@@ -10,7 +10,7 @@
 Install-Package CC.CodeGenerator
 ```
 
-```shell
+```powershell
 Install-Package CC.NetCore
 ```
 
