@@ -14,6 +14,8 @@ Install-Package CC.CodeGenerator
 Install-Package CC.NetCore
 ```
 
+> 因为VS的原因，在添加包引用或者升级包版本后，建议重启VS。
+
 ### Program.cs中添加全局引用
 ```csharp
 global using CC.CodeGenerator;
