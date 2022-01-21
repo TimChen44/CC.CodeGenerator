@@ -66,3 +66,8 @@ me.City = "上海";
 me.SaveGen(context);
 context.SaveChanges();
 ```
+
+# 效果演示
+
+![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
+
