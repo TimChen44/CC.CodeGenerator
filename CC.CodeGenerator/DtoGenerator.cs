@@ -27,6 +27,7 @@ public class DtoGenerator : ISourceGenerator
 
 #endif
 
+        //注册一个语法修改通知
         context.RegisterForSyntaxNotifications(() => new DtoSyntaxReceiver());
     }
 
@@ -47,6 +48,8 @@ public class DtoGenerator : ISourceGenerator
 
     public void Execute(GeneratorExecutionContext context)
     {
+
+
         //生成DtoAttribute
         SyntaxTree dtoAtt = CreateDtoAttribute(context);
 
@@ -66,7 +69,6 @@ public class DtoGenerator : ISourceGenerator
         {
             CreateDto(context, compilation, dtoAttSymbol, dtoClass);
         }
-
     }
 
     /// <summary>
@@ -109,6 +111,11 @@ public class IgnoreAttribute : Attribute
         var dtoAttr = dtoSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass.Equals(dtoAttSymbol, SymbolEqualityComparer.Default));
         if (dtoAttr == null) return;
 
+        //类的类型
+        var typeName = (dtoClass is ClassDeclarationSyntax) ? "class" : "record";
+
+        #region Dto实体
+
         //获得dto成员列表
         var dtoProperties = dtoSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
             .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.IgnoreAttribute") == false)//排除忽略属性
@@ -117,17 +124,20 @@ public class IgnoreAttribute : Attribute
             .Where(x => x.Type?.BaseType?.Name == "ValueType" || x.Type?.MetadataName == "String")//排除非值类型的属性
             .ToList();
 
+        #endregion
+
+        #region EF实体
+
         //获得DBContext的名字
         var contextName = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Context").Value.Value?.ToString();
-
         //获得实体类型
         ITypeSymbol entitySymbol = dtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Entity").Value.Value as ITypeSymbol;
-        var entityProperties = entitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
-
+        //获得实体属性
+        var entityProperties = entitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList() ?? new List<IPropertySymbol>();
         //获得实体主键
         var entityKeyIds = entityProperties.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
 
-        var typeName = (dtoClass is ClassDeclarationSyntax) ? "class" : "record";
+        #endregion
 
         //组装代码
         string dtoCode = @$"
