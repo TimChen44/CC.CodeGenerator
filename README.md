@@ -6,11 +6,11 @@
 ## 1. 安装
 
 ### 安装代码生成包以及支持包
-```
+```cmd
 Install-Package CC.CodeGenerator
 ```
 
-```
+```cmd
 Install-Package CC.NetCore
 ```
 
@@ -25,18 +25,18 @@ global using CC.CodeGenerator;
 
 Ignore:忽略不需要的属性
 ```csharp
-    [Dto()]
-    public partial class PeopleEditDto
-    {
-        public Guid PeopleId { get; set; }
+[Dto()]
+public partial class PeopleEditDto
+{
+    public Guid PeopleId { get; set; }
 
-        public string UserName { get; set; }
+    public string UserName { get; set; }
 
-        public string City { get; set; }
+    public string City { get; set; }
 
-        [Ignore]
-        public string Display => $"{UserName} {City}";
-    }
+    [Ignore]
+    public string Display => $"{UserName} {City}";
+}
 ```
 
 ## 3. 支持EF简化单表操作
@@ -51,8 +51,8 @@ Context:上下文对象
 
 Entity:映射的EF实体
 ```csharp
-    [Dto(Context =nameof(DemoaContext),Entity =typeof(People))]
-    public partial class PeopleEditDto
+[Dto(Context =nameof(DemoaContext),Entity =typeof(People))]
+public partial class PeopleEditDto
 ```
 
 ### 查询和保存示例
