@@ -41,6 +41,11 @@ public partial class PeopleEditDto
 }
 ```
 
+### 效果演示
+
+![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
+
+
 ## 3. 支持EF简化单表操作
 
 ### Program.cs中加入EF实体引用
@@ -69,7 +74,18 @@ me.SaveGen(context);
 context.SaveChanges();
 ```
 
-# 效果演示
+## 3. 服务注册代码自动创建
 
-![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
+### Program.cs中标记注册位置
+```csharp
+var builder = WebApplication.CreateBuilder(args);
 
+CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
+```
+
+### 服务中增加ServiceAttribute
+LifeCycle:自定义生命周期，默认Scoped
+```csharp
+[Service(LifeCycle = ELifeCycle.Singleton)]
+public class WeatherForecastService
+```
