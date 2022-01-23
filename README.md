@@ -6,13 +6,15 @@
 ## 1. 安装
 
 ### 安装代码生成包以及支持包
-```
+```powershell
 Install-Package CC.CodeGenerator
 ```
 
-```
+```powershell
 Install-Package CC.NetCore
 ```
+
+> 因为VS的原因，在添加包引用或者升级包版本后，建议重启VS。
 
 ### Program.cs中添加全局引用
 ```csharp
@@ -25,18 +27,18 @@ global using CC.CodeGenerator;
 
 Ignore:忽略不需要的属性
 ```csharp
-    [Dto()]
-    public partial class PeopleEditDto
-    {
-        public Guid PeopleId { get; set; }
+[Dto()]
+public partial class PeopleEditDto
+{
+    public Guid PeopleId { get; set; }
 
-        public string UserName { get; set; }
+    public string UserName { get; set; }
 
-        public string City { get; set; }
+    public string City { get; set; }
 
-        [Ignore]
-        public string Display => $"{UserName} {City}";
-    }
+    [Ignore]
+    public string Display => $"{UserName} {City}";
+}
 ```
 
 ## 3. 支持EF简化单表操作
@@ -51,8 +53,8 @@ Context:上下文对象
 
 Entity:映射的EF实体
 ```csharp
-    [Dto(Context =nameof(DemoaContext),Entity =typeof(People))]
-    public partial class PeopleEditDto
+[Dto(Context =nameof(DemoaContext),Entity =typeof(People))]
+public partial class PeopleEditDto
 ```
 
 ### 查询和保存示例
@@ -66,3 +68,8 @@ me.City = "上海";
 me.SaveGen(context);
 context.SaveChanges();
 ```
+
+# 效果演示
+
+![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
+
