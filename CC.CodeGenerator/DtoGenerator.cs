@@ -20,10 +20,10 @@ public class DtoGenerator : ISourceGenerator
     {
 #if DEBUG
 
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
+        //if (!Debugger.IsAttached)
+        //{
+        //    Debugger.Launch();
+        //}
 
 #endif
 
@@ -48,8 +48,6 @@ public class DtoGenerator : ISourceGenerator
 
     public void Execute(GeneratorExecutionContext context)
     {
-
-
         //生成DtoAttribute
         SyntaxTree dtoAtt = CreateDtoAttribute(context);
 
