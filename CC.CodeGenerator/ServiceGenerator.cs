@@ -31,22 +31,22 @@ public class ServiceGenerator : ISourceGenerator
     class DtoSyntaxReceiver : ISyntaxReceiver
     {
         //需要生成Dto操作代码的类
-        public List<TypeDeclarationSyntax> CandidateClasses { get; } = new List<TypeDeclarationSyntax>();
+        public List<ClassDeclarationSyntax> CandidateClasses { get; } = new List<ClassDeclarationSyntax>();
 
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
 
             if (syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
             {
-                CandidateClasses.Add((TypeDeclarationSyntax)syntaxNode);
+                CandidateClasses.Add((ClassDeclarationSyntax)syntaxNode);
             }
         }
     }
 
     public void Execute(GeneratorExecutionContext context)
     {
-        //生成DtoAttribute
-        SyntaxTree dtoAtt = CreateServiceAttribute(context);
+        //生成ServiceAttribute
+        SyntaxTree serviceAtt = CreateServiceAttribute(context);
 
         if (!(context.SyntaxReceiver is DtoSyntaxReceiver receiver))
         {
@@ -54,7 +54,7 @@ public class ServiceGenerator : ISourceGenerator
         }
 
         //把DtoAttribute加入当前的编译中
-        Compilation compilation = context.Compilation.AddSyntaxTrees(dtoAtt);
+        Compilation compilation = context.Compilation.AddSyntaxTrees(serviceAtt);
 
         CreateService(context, compilation, receiver.CandidateClasses);
     }
@@ -69,7 +69,7 @@ public class ServiceGenerator : ISourceGenerator
         string attTemplate = @"
 namespace CC.CodeGenerator;
 
-//标记类是否时Dto类
+//标记类是否时Service类
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public class ServiceAttribute: Attribute
 {
@@ -93,24 +93,24 @@ public enum ELifeCycle
     }
 
 
-    public void CreateService(GeneratorExecutionContext context, Compilation compilation, List<TypeDeclarationSyntax> candidateClasses)
+    public void CreateService(GeneratorExecutionContext context, Compilation compilation, List<ClassDeclarationSyntax> candidateClasses)
     {
-        //获得DtoAttribute类符号
+        //获得ServiceAttribute类符号
         INamedTypeSymbol attSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.ServiceAttribute");
 
         List<string> addCode = new List<string>();
 
-        //创建Dto扩展
-        foreach (TypeDeclarationSyntax serviceClass in candidateClasses)
+        //创建Service扩展
+        foreach (ClassDeclarationSyntax serviceClass in candidateClasses)
         {
-            //获得dto类的类型符号
+            //获得Service类的类型符号
             if (compilation.GetSemanticModel(serviceClass.SyntaxTree).GetDeclaredSymbol(serviceClass) is not ITypeSymbol serviceSymbol) return;
 
-            //寻找是否有DtoAttribute
+            //寻找是否有ServiceAttribute
             var serverAttr = serviceSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass.Equals(attSymbol, SymbolEqualityComparer.Default));
             if (serverAttr == null) continue;
 
-            //获得DBContext的名字
+            //获得LifeCycle的名字
             var attLifeCycle = serverAttr.NamedArguments.FirstOrDefault(x => x.Key == "LifeCycle").Value.Value;
 
             var attLifeCycleText = attLifeCycle switch
@@ -125,6 +125,9 @@ public enum ELifeCycle
 
         }
 
+        var code = "";
+        if (addCode.Count > 0)
+            code = addCode.Aggregate((a, b) => a + "\r\n" + b);
 
         //组装代码
         string autoDICode = @$"using Microsoft.AspNetCore.Builder; 
@@ -134,7 +137,7 @@ public static class AutoDI
 {{
     public static void AddServices(WebApplicationBuilder builder)
     {{
-{addCode.Aggregate((a, b) => a + "\r\n" + b)}
+{code}
     }}
 }}
 ";
