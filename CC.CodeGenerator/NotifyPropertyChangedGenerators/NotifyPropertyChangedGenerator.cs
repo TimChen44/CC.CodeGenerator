@@ -18,13 +18,13 @@ public class NotifyPropertyChangedGenerator : GeneratorBase
     {
         //生成notifyPropertyAttribute
         var notifyPropAtt = CreateNotifyPropertyChangedAttribute(context);
-        if (context.SyntaxReceiver is not NotifyPropertyChangedReceiver receiver) return;
-
-        //如果没有使用NotifyPropertyChangedAttribute，就不要生成代码。
-        if (receiver.IsEmpty) return;
+        if (context.SyntaxReceiver is not NotifyPropertyChangedReceiver receiver) return;    
 
         //把notifyPropAtt加入当前的编译中
         var compilation = context.Compilation.AddSyntaxTrees(notifyPropAtt);
+
+        //如果列表为空，就停止运行。
+        if (receiver.IsEmpty) return;
 
         //获得DtoAttribute类符号
         var attSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.AddNotifyPropertyChangedAttribute");
