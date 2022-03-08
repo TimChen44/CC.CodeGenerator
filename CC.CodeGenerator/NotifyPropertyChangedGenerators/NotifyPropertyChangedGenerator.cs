@@ -18,13 +18,10 @@ public class NotifyPropertyChangedGenerator : GeneratorBase
     {
         //生成notifyPropertyAttribute
         var notifyPropAtt = CreateNotifyPropertyChangedAttribute(context);
-        if (context.SyntaxReceiver is not NotifyPropertyChangedReceiver receiver) return;    
+        if (context.SyntaxReceiver is not NotifyPropertyChangedReceiver receiver) return;
 
         //把notifyPropAtt加入当前的编译中
         var compilation = context.Compilation.AddSyntaxTrees(notifyPropAtt);
-
-        //如果列表为空，就停止运行。
-        if (receiver.IsEmpty) return;
 
         //获得DtoAttribute类符号
         var attSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.AddNotifyPropertyChangedAttribute");
@@ -95,10 +92,11 @@ public class AddNotifyPropertyChangedAttribute: Attribute
         context.AddSource(csFile, SourceText.From(code, Encoding.UTF8));
     }
 
-    private static (string setName,string onChangedName) GetParamValues(AttributeData notifyPropAttr)
+    private static (string setName, string onChangedName) GetParamValues(AttributeData notifyPropAttr)
     {
         var ctors = notifyPropAttr.ConstructorArguments;
-        return (ctors[0].Value.ToString() ?? "SetProperty", ctors[1].Value.ToString() ?? "OnPropertyChanged");
+        return (ctors[0].Value?.ToString() ?? "SetProperty",
+                ctors[1].Value?.ToString() ?? "OnPropertyChanged");
     }
 
     private string GetClassCode(ITypeSymbol typeSymbol, AttributeData notifyPropAttr)
@@ -124,7 +122,7 @@ namespace {typeSymbol.ContainingNamespace.ToDisplayString()}
         {{
             if (EqualityComparer<T>.Default.Equals(propField, value)) return false;
             propField = value;
-            OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
+            {onChangedName}(new PropertyChangedEventArgs(propertyName));
             return true;
         }}
 
