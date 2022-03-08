@@ -47,7 +47,7 @@ public class AddNotifyPropertyChangedAttribute: Attribute
 {{    
     {CreateXmlDocumentation("是否实现INotifyPropertyChanged接口", 1)}
     {CreateXmlParam("onPropChangedHandlerName", "变更方法名称，用于解决命名冲突(默认为:OnPropertyChanged)")}
-    {CreateXmlParam("setPropHandlerName", "变更方法名称，用于解决命名冲突(默认为:OnPropertyChanged)")}
+    {CreateXmlParam("setPropHandlerName", "变更方法名称，用于解决命名冲突(默认为:SetProperty)")}
     public AddNotifyPropertyChangedAttribute(string setPropHandlerName = ""SetProperty""
           ,string onPropChangedHandlerName = ""OnPropertyChanged"") 
     {{        
