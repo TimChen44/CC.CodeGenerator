@@ -10,7 +10,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.CodeGenerator.Demo.Entity", "CC.CodeGenerator.Demo.Entity\CC.CodeGenerator.Demo.Entity.csproj", "{ACB922AF-9652-4401-AA14-933FE9A8B8FA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.CodeGenerator.Demo.BlazorServer", "CC.CodeGenerator.Demo.BlazorServer\CC.CodeGenerator.Demo.BlazorServer.csproj", "{2B6C7828-DC20-4AFF-9622-E98F0E19553B}"
-EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.CodeGenerator.Demo.NotifyPropertyChanged", "CC.CodeGenerator.Demo.NotifyPropertyChanged\CC.CodeGenerator.Demo.NotifyPropertyChanged.csproj", "{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}"
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +33,10 @@ Global
 		{2B6C7828-DC20-4AFF-9622-E98F0E19553B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B6C7828-DC20-4AFF-9622-E98F0E19553B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B6C7828-DC20-4AFF-9622-E98F0E19553B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

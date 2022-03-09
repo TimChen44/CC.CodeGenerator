@@ -125,6 +125,9 @@ public enum ELifeCycle
 
         }
 
+        //如果没有使用就停止生成
+        if (addCode.Count is 0) return;
+
         var code = "";
         if (addCode.Count > 0)
             code = addCode.Aggregate((a, b) => a + "\r\n" + b);
