@@ -89,3 +89,21 @@ LifeCycle:自定义生命周期，默认Scoped
 [Service(LifeCycle = ELifeCycle.Singleton)]
 public class WeatherForecastService
 ```
+
+## 4. 自动实现INotifyPropertyChanged接口
+
+```csharp
+[AddNotifyPropertyChanged]
+internal partial class Demo
+{
+    public int MyProperty { get => _MyProperty; set => SetProperty(ref _MyProperty, value); }
+    private int _MyProperty;
+
+}
+```
+
+```csharp
+var data = new Demo();
+data.PropertyChanged += (s, e) => Console.WriteLine($"属性{e.PropertyName}被修改");
+data.MyProperty = 1;
+```
