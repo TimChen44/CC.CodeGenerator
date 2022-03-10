@@ -3,6 +3,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Text;
+using System.Linq;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace CC.CodeGenerator;
 
@@ -13,6 +16,14 @@ namespace CC.CodeGenerator;
 public class NotifyPropertyChangedGenerator : GeneratorBase
 {
     protected override ISyntaxReceiver GetSyntaxReceiver() => new NotifyPropertyChangedReceiver();
+
+    public override void Initialize(GeneratorInitializationContext context)
+    {
+#if DEBUG_NotifyProperty
+        DebuggerLaunch();
+#endif
+        base.Initialize(context);
+    }
 
     public override void Execute(GeneratorExecutionContext context)
     {
@@ -46,20 +57,13 @@ namespace CC.CodeGenerator;
 public class AddNotifyPropertyChangedAttribute: Attribute 
 {{    
     {CreateXmlDocumentation("是否实现INotifyPropertyChanged接口", 1)}
-    {CreateXmlParam("onPropChangedHandlerName", "变更方法名称，用于解决命名冲突(默认为:OnPropertyChanged)")}
-    {CreateXmlParam("setPropHandlerName", "变更方法名称，用于解决命名冲突(默认为:SetProperty)")}
-    public AddNotifyPropertyChangedAttribute(string setPropHandlerName = ""SetProperty""
-          ,string onPropChangedHandlerName = ""OnPropertyChanged"") 
-    {{        
-        SetPropHandlerName = setPropHandlerName;
-        OnPropertyChangedHandlerName = onPropChangedHandlerName;
-    }}          
+    public AddNotifyPropertyChangedAttribute() {{  }}          
 
-    {CreateXmlDocumentation("OnPropertyChanged函数名称", 1)}
-    public string OnPropertyChangedHandlerName {{ get; }}
+    {CreateXmlDocumentation("OnPropertyChanged函数名称, 用于解决命名冲突(默认为:OnPropertyChanged)", 1)}
+    public string? OnPropertyChangedHandlerName {{ get; set; }}
 
-    {CreateXmlDocumentation("SetProperty函数名称", 1)}
-    public string SetPropHandlerName {{ get; }}
+    {CreateXmlDocumentation("SetProperty函数名称, 用于解决命名冲突(默认为:SetProperty)", 1)}
+    public string? SetPropHandlerName {{ get; set; }}
 }}
 ";
         var sourceText = SourceText.From(attTemplate, Encoding.UTF8);
@@ -92,18 +96,27 @@ public class AddNotifyPropertyChangedAttribute: Attribute
         context.AddSource(csFile, SourceText.From(code, Encoding.UTF8));
     }
 
-    private static (string setName, string onChangedName) GetParamValues(AttributeData notifyPropAttr)
+    private static (string setName, string onChangedName) GetNamedArgument(AttributeData notifyPropAttr)
     {
-        var ctors = notifyPropAttr.ConstructorArguments;
-        return (ctors[0].Value?.ToString() ?? "SetProperty",
-                ctors[1].Value?.ToString() ?? "OnPropertyChanged");
+        var namedArguments = notifyPropAttr.NamedArguments;
+        return (GetNamedArgument(namedArguments, "SetPropHandlerName", "SetProperty"),
+                GetNamedArgument(namedArguments, "OnPropertyChangedHandlerName", "OnPropertyChanged"));
+    }
+
+    private static string GetNamedArgument(IEnumerable<KeyValuePair<string, TypedConstant>> namedArguments
+        , string propName, string defalutName)
+    {
+        var res = namedArguments.FirstOrDefault(x => x.Key == propName)
+            .Value.Value?.ToString() ?? defalutName;
+        if (res is not { Length: > 0 }) res = defalutName;
+        return res;
     }
 
     private string GetClassCode(ITypeSymbol typeSymbol, AttributeData notifyPropAttr)
     {
         var declaredAccessibility = typeSymbol.DeclaredAccessibility.ToString().ToLower();
         var typeName = typeSymbol.GetTypeString();
-        var (setName, onChangedName) = GetParamValues(notifyPropAttr);
+        var (setName, onChangedName) = GetNamedArgument(notifyPropAttr);
 
         return $@"
 using System.Collections.Generic;

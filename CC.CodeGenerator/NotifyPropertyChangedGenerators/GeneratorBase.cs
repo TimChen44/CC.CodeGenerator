@@ -7,17 +7,15 @@ public abstract class GeneratorBase : ISourceGenerator
 {
     public virtual void Initialize(GeneratorInitializationContext context)
     {
-#if DEBUG
-
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
-
-#endif
         //注册一个语法修改通知
         context.RegisterForSyntaxNotifications(GetSyntaxReceiver);
     }
+
+    protected void DebuggerLaunch()
+    {
+        if (!Debugger.IsAttached) Debugger.Launch();
+    }
+
 
     protected abstract ISyntaxReceiver GetSyntaxReceiver();
 
@@ -48,5 +46,5 @@ public abstract class GeneratorBase : ISourceGenerator
     /// <summary>
     /// 插入TAB
     /// </summary>
-    public static string InsertTab(int tabCount) => new('\t', tabCount);      
+    public static string InsertTab(int tabCount) => new('\t', tabCount);
 }
