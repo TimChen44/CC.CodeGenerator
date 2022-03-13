@@ -1,5 +1,10 @@
-﻿using CC.CodeGenerator.Demo.NotifyPropertyChanged;
+﻿global using CC.CodeGenerator;
+using CC.CodeGenerator.Demo.NotifyPropertyChanged;
+using System.ComponentModel;
 
-var data = new Demo();
-data.PropertyChanged += (s, e) => Console.WriteLine($"属性{e.PropertyName}被修改");
-data.MyProperty = 456;
+var test = new Demo1() ;
+((INotifyPropertyChanged)test).PropertyChanged += (s, e) => 
+    Console.WriteLine($"{e.PropertyName}被修改");
+test.Id = 123;
+
+Console.WriteLine("完成");

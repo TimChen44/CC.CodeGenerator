@@ -1,50 +1,86 @@
-﻿using Microsoft.CodeAnalysis;
+﻿#nullable enable
+using CC.CodeGenerator.Receivers;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using System.Diagnostics;
 
-namespace CC.CodeGenerator;
-
-public abstract class GeneratorBase : ISourceGenerator
+namespace CC.CodeGenerator
 {
-    public virtual void Initialize(GeneratorInitializationContext context)
+    public abstract class GeneratorBase : ISourceGenerator
     {
-        //注册一个语法修改通知
-        context.RegisterForSyntaxNotifications(GetSyntaxReceiver);
+        public virtual void Initialize(GeneratorInitializationContext context)
+        {
+            context.RegisterForSyntaxNotifications(GetSyntaxReceiver);
+        }
+
+        protected void DebuggerLaunch()
+        {
+            if (!Debugger.IsAttached) Debugger.Launch();
+        }
+
+        /// <summary>
+        /// 返回SyntaxNode(默认情况下返回带有特性的class或recor)
+        /// </summary>
+        protected virtual ISyntaxReceiver GetSyntaxReceiver() => new ReceiverDefault();
+
+        public virtual void Execute(GeneratorExecutionContext context)
+        {
+            try
+            {
+                var compilation = context.Compilation;
+
+                //将特性添加到当前的编译中
+                var attr = CreateAttribute(context, out var attributeFullName);
+                if (attr is not null)
+                    compilation = compilation.AddSyntaxTrees(attr);
+
+                var attSymbol = compilation.GetTypeByMetadataName(attributeFullName);
+                Execute(context, compilation, attSymbol);
+            }
+            catch (Exception ex)
+            {
+                CreateErrorFile(context, ex);              
+            }           
+        }
+
+        private void CreateErrorFile(GeneratorExecutionContext context, Exception ex)
+        {
+            var error = $@"
+/*
+{ex}
+*/
+";
+            var fileName = $"_Error{GetType().Name}.cs";
+            context.AddSource(fileName, error);
+        }
+
+        protected abstract void Execute(GeneratorExecutionContext context
+            , Compilation compilation, INamedTypeSymbol? attributeSymbol);
+
+        /// <summary>
+        /// 创建特性
+        /// </summary>
+        protected virtual SyntaxTree? CreateAttribute(GeneratorExecutionContext context, out string attributeFullName)
+        {
+            var (fileName, code) = GetAttributeCode(context, out attributeFullName);
+            if (code is not { Length: > 0 }) return default;
+            var sourceText = SourceText.From(code, Encoding.UTF8);
+            context.AddSource(fileName, sourceText);
+            return CSharpSyntaxTree.ParseText(sourceText);
+        }
+
+        /// <summary>
+        /// 返回特性的代码
+        /// </summary>
+        /// <returns>code 代码<br/>fileName 文件名</returns>
+        protected abstract (string fileName, string? code) GetAttributeCode(GeneratorExecutionContext context, out string attributeFullName);
     }
 
-    protected void DebuggerLaunch()
+    public abstract class GeneratorBase<T> : GeneratorBase where T : class, ISyntaxReceiver, new()
     {
-        if (!Debugger.IsAttached) Debugger.Launch();
+        protected override ISyntaxReceiver GetSyntaxReceiver() => new T();
+
+        protected T? GetSyntaxReceiver(GeneratorExecutionContext context) => context.SyntaxReceiver as T;
     }
 
-
-    protected abstract ISyntaxReceiver GetSyntaxReceiver();
-
-    public abstract void Execute(GeneratorExecutionContext context);
-
-    /// <summary>
-    /// 创建XML文档标记
-    /// </summary>
-    /// <param name="content">内容</param>
-    /// <param name="tabCount">对其</param>
-    public static string CreateXmlDocumentation(string content, int tabCount = 0)
-    {
-        return @$"
-{InsertTab(tabCount)}/// <summary>
-{InsertTab(tabCount)}/// {content}
-{InsertTab(tabCount)}/// </summary>";
-    }
-
-    /// <summary>
-    ///  添加参数描述
-    /// </summary>
-    /// <param name="paramName">参数名称</param>
-    /// <param name="content">描述内容</param>
-    /// <param name="tabCount">对其</param>
-    public static string CreateXmlParam(string paramName, string content, int tabCount = 0) =>
-        @$"{InsertTab(tabCount)}/// <param name=""{paramName}"">{content}</param>";
-
-    /// <summary>
-    /// 插入TAB
-    /// </summary>
-    public static string InsertTab(int tabCount) => new('\t', tabCount);
 }

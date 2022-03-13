@@ -15,7 +15,7 @@ public class ServiceGenerator : ISourceGenerator
 {
     public void Initialize(GeneratorInitializationContext context)
     {
-#if DEBUG
+#if !DEBUG
 
         if (!Debugger.IsAttached)
         {
