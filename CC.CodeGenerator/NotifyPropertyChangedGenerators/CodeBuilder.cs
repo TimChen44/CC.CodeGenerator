@@ -1,71 +1,26 @@
-﻿#nullable enable
+﻿#pragma warning disable CS8632
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerato;
 internal class CodeBuilder
 {
-    private readonly HashSet<string> partialMatching = new()
-    {
-        "class",
-        "record",
-        "struct",
-        "interface",
-    };
+    private readonly HashSet<string> partialMatching = new() { "class", "record", "struct", "interface", };
     private readonly List<string> usings = new();
-    private readonly Queue<string> queue = new();
-    private readonly Stack<string> stack = new();
-    private readonly List<string> errors = new();
+    private readonly List<string?> starts = new();
+    private readonly Stack<string> ends = new();
     private string tabString = "";
+    private int _tabCount = 0;
 
-    public CodeBuilder() { }
-
-    public int TabCount { get; private set; }
-
-    private void RefreshTabString() => tabString = new('\t', TabCount);
-
-    public CodeBuilder AddLine()
+    public int TabCount
     {
-        AddQueueCode("");
-        return this;
+        get => _tabCount;
+        private set
+        {
+            if (_tabCount == value) return;
+            _tabCount = value;
+            tabString = new('\t', _tabCount);
+        }
     }
-
-    public CodeBuilder TabPlus()
-    {
-        TabCount += 1;
-        RefreshTabString();
-        return this;
-    }
-
-    public CodeBuilder TabMinus()
-    {
-        TabCount -= 1;
-        RefreshTabString();
-        return this;
-    }
-
-    private void AddQueueCode(string code) => queue.Enqueue(code);
-
-    private void AddStackCode(string code) => stack.Push(code);
-
-    private void SetEnd() => AddStackCode($"{tabString}}}");
-
-    private void AppendLine(StringBuilder sb, IEnumerable<string> items)
-    {
-        foreach (var item in items) sb.AppendLine(item);
-    }
-
-    public string Build()
-    {
-        var sb = new StringBuilder();
-        WriteError(sb);
-        usings.ForEach(x => sb.AppendLine(x));
-        AppendLine(sb, queue);
-        AppendLine(sb, stack);
-        var res = sb.ToString();
-        return res;
-    }
-
-    public override string ToString() => Build();
 
     /// <summary>
     /// 添加Using
@@ -77,104 +32,157 @@ internal class CodeBuilder
     }
 
     /// <summary>
-    /// 添加空间名
+    /// 添加一个缩进
     /// </summary>
-    public CodeBuilder AddNamespace(string value)
+    public CodeBuilder AddTab(Action<CodeBuilder> children)
     {
-        AddQueueCode($"{tabString}namespace {value}\r\n{tabString}{{");
-        SetEnd();
-        TabPlus();
-        return this;
+        TabCount += 1;
+        children(this);
+        TabCount -= 1;
+        return this; ;
     }
-
-    internal CodeBuilder AddError(IEnumerable<string> errors)
-    {
-        this.errors.AddRange(errors);
-        return this;
-    }
-
-    public CodeBuilder AddType(ISymbol? symbol) =>
-        symbol is INamedTypeSymbol namedTypeSymbol ? AddType(namedTypeSymbol) : this;
-
-    public CodeBuilder AddType(INamedTypeSymbol symbol, params string[] inherits)
-    {
-        var sb = new StringBuilder();
-        WriteType(symbol, sb);
-        WriteTypeParameters(symbol, sb);
-        WriteInherit(sb, inherits);
-        AddQueueCode($"{tabString}{sb}\r\n{tabString}{{");
-        SetEnd();
-        return this;
-    }
-
-    private void WriteType(INamedTypeSymbol symbol, StringBuilder sb)
-    {
-        var keys = GetKeywords(symbol);
-        var isPartial = keys.Any(x => x == "partial");
-        foreach (var item in keys)
-        {
-            if (partialMatching.Contains(item) && !isPartial)
-                sb.Append("partial ");
-            sb.Append(item).Append(' ');
-        }
-        sb.Append(symbol.Name);
-    }
-
-    private void WriteTypeParameters(INamedTypeSymbol symbol, StringBuilder sb)
-    {
-        if (symbol.TypeParameters.Length is 0) return;
-        sb.Append("<");
-        var items = symbol.TypeParameters.Select(x => x.Name);
-        sb.Append(string.Join(", ", items));
-        sb.Append(">");
-    }
-
-    private void WriteInherit(StringBuilder sb, string[] inherits)
-    {
-        if (inherits is not { Length: > 0 }) return;
-        sb.Append(" : ");
-        sb.Append(string.Join(", ", inherits));
-    }
-
-    private string[] GetKeywords(INamedTypeSymbol symbol) => symbol
-        .DeclaringSyntaxReferences[0]
-        .GetSyntax()
-        .ChildTokens()
-        .Where(x => x.IsKeyword())
-        .Select(x => x.ToString())
-        .ToArray();
-
-    private void WriteError(StringBuilder sb)
-    {    
-        if (errors.Count is 0) return;
-        sb.AppendLine("// 生成时发生错误 !!!!!!!!!!!!!!!");
-        errors.SelectMany(x => x.GetLines()).ToList().ForEach(x =>
-        {
-            if (x.Length > 0) sb.Append("// ");
-            sb.AppendLine(x);
-        });
-    }
-
-    public CodeBuilder Add(Func<CodeBuilder, CodeBuilder> func) => func(this);
 
     /// <summary>
-    /// 添加成员代码(并且追加一行)
+    /// 添加代码(分行:{缩进}{insertValue}{行内容})
     /// </summary>
-    public CodeBuilder AddMember(string code, bool addLine = true)
+    /// <param name="code">代码内容，自动分行</param>
+    /// <param name="insertValue">在每行前面插入的内容</param>
+    public CodeBuilder AddCode(string? code, string insertValue = "")
     {
-        TabPlus();
-        AddQueue(code);
-        if (addLine) AddLine();
-        TabMinus();
+        if (code != null)
+        {
+            foreach (var item in code.GetLines())
+                starts.Add($"{tabString}{insertValue}{item}");
+        }
         return this;
     }
 
-    private void AddQueue(string code)
+    /// <summary>
+    /// 仅用于添加单行
+    /// </summary>
+    public CodeBuilder AddLine(string? value = null)
     {
-        foreach (var item in code.GetLines())
-        {
-            if (item.Length > 0) AddQueueCode($"{tabString}{item}");
-            else AddQueueCode(item);
-        }
+        starts.Add($"{tabString}{value}");
+        return this;
     }
+
+    public CodeBuilder AddScope(string? s = "{", string? e = "}", bool addTab = true)
+    {
+        starts.Add($"{tabString}{s}");
+        ends.Push($"{tabString}{e}");
+        if (addTab) TabCount += 1;
+        return this;
+    }
+
+    /// <summary>
+    /// 插入类型树
+    /// </summary>
+    public CodeBuilder AddTypeTree(INamedTypeSymbol typeSymbol, params string[] inherits)
+    {
+        var (namespaces, types) = GetNodes(typeSymbol);
+        var last = types.Last().Symbol!.ToString();
+        var namespaceStr = string.Join(".", namespaces.Select(x => x.ToString()));
+        AddCode($"namespace {namespaceStr}").AddScope();
+
+        foreach (var item in types)
+        {
+            var key = item.Symbol!.ToString();
+            var keyword = GetKeyword(item);
+            var className = key.Split('.').Last();
+            var inherit = GetInherit(() => key == last, inherits);
+
+            starts.Add($"{tabString}{keyword} {className} {inherit}");
+            AddScope();
+        }
+        return this;
+    }
+
+    private string GetInherit(Func<bool> where, string[] inherits)
+    {
+        if (!where()) return "";
+        return $" : {string.Join(", ", inherits)}";
+    }
+
+    private string GetKeyword(SymbolDisplayPart symbol)
+    {
+        var items = symbol.Symbol!
+              .DeclaringSyntaxReferences[0]
+              .GetSyntax()
+              .ChildTokens()
+              .Where(x => x.IsKeyword())
+              .Select(x => x.ToString())
+              .ToList();
+        if (!items.Any(x => x == "partial"))
+            items = GetKeywords(ref items);
+        return string.Join(" ", items);
+    }
+
+    private List<string> GetKeywords(ref List<string> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (partialMatching.Contains(list[i]))
+            {
+                list[i] = $"partial {list[i]}";
+                return list;
+            }
+        }
+        list.Insert(0, "partial");
+        return list;
+    }
+
+    private (SymbolDisplayPart[] namespaces, SymbolDisplayPart[] types) GetNodes(INamedTypeSymbol typeSymbol)
+    {
+        var namespaces = new List<SymbolDisplayPart>();
+        var types = new List<SymbolDisplayPart>();
+        foreach (var node in typeSymbol.ToDisplayParts())
+        {
+            switch (node.Kind)
+            {
+                case SymbolDisplayPartKind.NamespaceName:
+                    namespaces.Add(node);
+                    break;
+
+                case SymbolDisplayPartKind.ClassName:
+                case SymbolDisplayPartKind.InterfaceName:
+                case SymbolDisplayPartKind.RecordClassName:
+                case SymbolDisplayPartKind.RecordStructName:
+                case SymbolDisplayPartKind.StructName:
+                    types.Add(node);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return (namespaces.ToArray(), types.ToArray());
+    }
+
+    public override string ToString() => GetCode();
+
+    public string GetCode()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(GetDisableWarnings());
+        usings.ForEach(x => sb.AppendLine($"using {x};".Replace(";;",";").Replace("using using ", "using ")));
+        starts.ForEach(x => sb.AppendLine(x));
+        ends.ToList().ForEach(x => sb.AppendLine(x));
+        return sb.ToString();
+    }
+
+    private string GetDisableWarnings() => @$"// 生成 : {DateTime.Now}
+#region warnings
+#pragma warning disable IDE0079
+#pragma warning disable IDE0090
+#pragma warning disable IDE0044
+#pragma warning disable IDE0051
+#pragma warning disable IDE0060
+#pragma warning disable CS8618
+#pragma warning disable CS8612
+#pragma warning disable CS8625
+#pragma warning disable CS8603
+#pragma warning disable CA1822
+#pragma warning disable CS0169
+#pragma warning disable CS0414
+#endregion
+";
 }

@@ -1,9 +1,10 @@
-﻿#nullable enable
+﻿#pragma warning disable CS8632
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Reflection;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerato;
 
 internal static class Extends
 {
@@ -16,36 +17,43 @@ internal static class Extends
     public static ISymbol? GetDeclaredSymbol(this SyntaxNode node, Compilation compilation) =>
                compilation.GetSemanticModel(node.SyntaxTree).GetDeclaredSymbol(node);
 
+    /// <summary>
+    /// 语法引用的符号(用于调用表达式)
+    /// </summary>
+    public static ISymbol? GetSymbol(this SyntaxNode node, Compilation compilation) =>
+        compilation.GetSemanticModel(node.SyntaxTree).GetSymbolInfo(node).Symbol;
+
+    /// <summary>
+    /// 语法引用的符号(用于调用表达式)
+    /// </summary>
+    public static T? GetSymbol<T>(this SyntaxNode node, Compilation compilation)
+        where T : class, ISymbol => node.GetSymbol(compilation) as T;
+
+    /// <summary>
+    /// 生成、条件编译符号是否存在
+    /// </summary>
+    public static string? FindPreprocessorSymbol(this SyntaxNode node, Func<string, bool> where) =>
+        node.SyntaxTree.Options
+        .PreprocessorSymbolNames
+        .FirstOrDefault(where);
+
     #endregion
 
     #region GeneratorExecutionContext
 
-    public static void ReportDiagnostic(this GeneratorExecutionContext context
-        , SyntaxNode syntaxNode
-        , DiagnosticSeverity diagnosticSeverity
-        , string id, string error, string? helpLinkUri = null, int offset = 1)
+    public static bool ReportError(this GeneratorExecutionContext context, DiagnosticData data, bool result = false)
     {
-        var diagnosticDescriptor = new DiagnosticDescriptor
-        (
-            id,
-            "ShadowCode",
-            messageFormat: "{0}",
-            category: "ShadowCode",
-            defaultSeverity: diagnosticSeverity,
-            isEnabledByDefault: true,
-            helpLinkUri: helpLinkUri
-        );
-
-        var location = GetLocation(syntaxNode, offset);
-        var diagnostic = Diagnostic.Create(diagnosticDescriptor, location, error);
-        context.ReportDiagnostic(diagnostic);
+        data.ReportDiagnostic(context);
+        return result;
     }
 
-    private static Location GetLocation(SyntaxNode syntaxNode, int offset)
+
+    public static SyntaxTree AddSourceAndParseText(this GeneratorExecutionContext context
+        , string fileName, string code)
     {
-        var span = syntaxNode.Span;
-        var textSpan = TextSpan.FromBounds(span.Start - offset, span.End);
-        return Location.Create(syntaxNode.SyntaxTree, textSpan);
+        var sourceText = SourceText.From(code, Encoding.UTF8);
+        context.AddSource(fileName, sourceText);
+        return CSharpSyntaxTree.ParseText(sourceText);
     }
 
     #endregion
@@ -63,15 +71,12 @@ internal static class Extends
         attributeData.AttributeClass?
         .Equals(target, SymbolEqualityComparer.Default) ?? false;
 
-    public static bool IsReferenceType(this TypedConstant typedConstant) => 
-        (typedConstant.Value as ITypeSymbol)?.BaseType?.Name != "ValueType";
-
-    public static string GetReferenceName(this TypedConstant typedConstant)
+    public static string GetTypeName(this ISymbol symbol)
     {
-        var value = typedConstant.Value!.ToString();
-        return IsReferenceType(typedConstant) ? $"{value}?" : value;
+        var type = (ITypeSymbol)symbol;
+        var res = type.ToString();
+        return res.EndsWith("?") || type.IsValueType ? res : $"{res}?";
     }
-
     #endregion
 
     #region AttributeData
@@ -112,12 +117,6 @@ internal static class Extends
     #endregion
 
     #region 字符串
-
-    /// <summary>
-    /// 是否为空或无内容字符串
-    /// </summary>
-    public static bool IsEmpty(this string? v) => v is not { Length: > 0 };
-
     public static IEnumerable<string> GetLines(this string value)
     {
         using var sr = new StringReader(value);
@@ -128,4 +127,5 @@ internal static class Extends
         }
     }
     #endregion
+
 }

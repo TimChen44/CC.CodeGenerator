@@ -1,12 +1,15 @@
-﻿#nullable enable
-using CC.CodeGenerator.NotifyPropertyChangeds;
-using CC.CodeGenerator.NotifyPropertyChangeds.Infos;
+﻿using CC.CodeGenerato.NotifyPropertyChangeds;
+using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerato;
 
 [Generator]
-public class NotifyPropChangedGenerator : GeneratorBase<NotifyPropChangedReceiver>
+public class NotifyPropertyGenerator : GeneratorBase<NotifyPropertyReceiver>
 {
+    public const string attributeName = "AddNotifyPropertyChangedAttribute";
+    public const string attributePath = $"CC.CodeGenerator.{attributeName}";
+    public const string attributeCtor = $"{attributePath}.{attributeName}";
+
     public override void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG_NotifyPropChanged
@@ -15,46 +18,35 @@ public class NotifyPropChangedGenerator : GeneratorBase<NotifyPropChangedReceive
         base.Initialize(context);
     }
 
-    protected override void Execute(GeneratorExecutionContext context
-        , Compilation compilation
-        , INamedTypeSymbol? attributeSymbol)
+    protected override void Run(GeneratorExecutionContext context)
     {
-        if (attributeSymbol is null) return;
-        var codeManager = new NotifyPropChangedCodeManager();
-        GetSyntaxReceiver(context)?.Nodes.ToList()
-            .ForEach(member => CodeHandler(member, context, compilation, attributeSymbol, codeManager));
-        codeManager.CreateCode(context);
-    }
+        //创建特性
+        CreateAttributeCode(context, out var compilation, out var attributeSymbol);
 
-    private void CodeHandler(MemberDeclarationSyntax member
-        , GeneratorExecutionContext context
-        , Compilation compilation
-        , INamedTypeSymbol attributeSymbol
-        , NotifyPropChangedCodeManager codeManager)
+        var param = new NodeData(context, compilation, attributeSymbol);
+        var typeContainer = new NotifyPropertyTypeContainer();
+
+        //查找标记了特性的成员
+        var members = GetSyntaxReceiver(context)?.Nodes
+            .Select(member => TargetValidationBase.TargetFactory(param, member))
+            .Where(IsTarget)
+            .ToList();
+
+        //将成员合并到相同的类型中
+        members?.ForEach(member => member!.MergeType(typeContainer));
+
+        //开始构建代码
+        typeContainer.Build();
+    }
+  
+
+    //创建特性,并且加入到编译中
+    private void CreateAttributeCode(GeneratorExecutionContext context
+        , out Compilation compilation
+        , out INamedTypeSymbol attributeSymbol)
     {
-        try
-        {
-            MemberInfoBase? data = member switch
-            {
-                FieldDeclarationSyntax fds => new FieldInfo(fds),
-                ClassDeclarationSyntax or RecordDeclarationSyntax => new TypeInfo(member),
-                _ => default
-            };
-
-            data?.SetValue(context, compilation, attributeSymbol, codeManager).ParsingCode();
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(member, DiagnosticSeverity.Error, "ShadowCodeError", ex.Message);
-        }
-    }
-
-    protected override (string fileName, string? code) GetAttributeCode(GeneratorExecutionContext context
-        , out string attributeFullName)
-{
-        attributeFullName = MemberInfoBase.attributePath;
         var code = @"
-#nullable enable
+#pragma warning disable CS8632
 namespace CC.CodeGenerator
 {
     /// <summary>
@@ -117,6 +109,9 @@ namespace CC.CodeGenerator
     }   
 }
 ";
-        return ($"{MemberInfoBase.attributeName}.cs", code);
+        var attr = context.AddSourceAndParseText($"{attributeName}.cs", code);
+        compilation = context.Compilation.AddSyntaxTrees(attr);
+        attributeSymbol = compilation.GetTypeByMetadataName(attributePath)!;
     }
+
 }
