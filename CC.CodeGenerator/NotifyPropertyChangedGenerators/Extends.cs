@@ -1,10 +1,9 @@
-﻿#pragma warning disable CS8632
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Reflection;
 
-namespace CC.CodeGenerato;
+namespace CC.CodeGenerator;
 
 internal static class Extends
 {
@@ -29,15 +28,8 @@ internal static class Extends
     public static T? GetSymbol<T>(this SyntaxNode node, Compilation compilation)
         where T : class, ISymbol => node.GetSymbol(compilation) as T;
 
-    /// <summary>
-    /// 生成、条件编译符号是否存在
-    /// </summary>
-    public static string? FindPreprocessorSymbol(this SyntaxNode node, Func<string, bool> where) =>
-        node.SyntaxTree.Options
-        .PreprocessorSymbolNames
-        .FirstOrDefault(where);
-
     #endregion
+
 
     #region GeneratorExecutionContext
 

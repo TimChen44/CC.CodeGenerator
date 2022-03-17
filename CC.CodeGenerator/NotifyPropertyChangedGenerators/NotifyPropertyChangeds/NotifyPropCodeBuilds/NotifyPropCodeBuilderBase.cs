@@ -1,16 +1,18 @@
-﻿#pragma warning disable CS8632
-using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-
-namespace CC.CodeGenerato.NotifyPropertyChangeds.CodeBuilds;
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
 
 /// <summary>
-/// 用于构建代码
+/// 负责构建代码
 /// </summary>
-internal abstract class CodeBuilderBase
+public abstract class NotifyPropCodeBuilderBase
 {
     private readonly Lazy<Location> attributeLocation;
 
-    public CodeBuilderBase() => attributeLocation = new(GetLocation);
+    public NotifyPropCodeBuilderBase(NotifyPropNodeBase node)
+    {
+        Node = node;
+        attributeLocation = new(GetLocation);
+    }
 
     /// <summary>
     /// 属性名称
@@ -20,9 +22,7 @@ internal abstract class CodeBuilderBase
     /// <summary>
     /// 字段名称
     /// </summary>
-
     public string? FieldName { get; set; } = null!;
-
 
     /// <summary>
     /// 类型
@@ -52,6 +52,8 @@ internal abstract class CodeBuilderBase
 
     public string? Error { get; protected set; }
 
+    public NotifyPropNodeBase Node { get; }
+
     public virtual bool IsBuild() => Error is null;
 
     private Location GetLocation() => AttributeData.GetSyntaxNode().GetLocation();
@@ -79,10 +81,15 @@ internal abstract class CodeBuilderBase
         }
     }
 
-    public abstract bool ReportError(string id, string err, bool result = false
-        , Location? source = null, int offset = 1);
+    public virtual bool ReportError(string id, string err, bool result = false
+        , Location? source = null, int offset = 1)
+    {
+        source ??= AttributeLocation;
+        Error = err;
+        return Node.ContextData.Context.ReportError(new(source, id, err) { LocationOffset = offset }, result);
+    }
 
-    public CodeBuilderBase ReportError(string id, string err)
+    public NotifyPropCodeBuilderBase ReportError(string id, string err)
     {
         ReportError(id, err, false);
         return this;
@@ -124,28 +131,10 @@ internal abstract class CodeBuilderBase
 
     protected string GetPlaceholder(string? value) => value ?? "?";
 
-
-}
-
-internal abstract class CodeBuilderBase<T> : CodeBuilderBase where T : TargetValidationBase
-{
-    public CodeBuilderBase(T node) => Node = node;
-
-    public T Node { get; }
-
-    public override bool ReportError(string id, string err, bool result = false
-        , Location? location = null, int offset = 1)
-    {
-        location ??= AttributeLocation;
-        Error = err;
-        return Node.NodeData.Context.ReportError(new(location, id, err) { LocationOffset = offset }, result);
-    }
-
-
     protected void TestName(Dictionary<string, Location?> memberNames, string? memberName)
     {
         if (Error is not null || !IsExistsName(memberNames, memberName!, AttributeLocation)) return;
-        var err = $"类型 \"{Node.ContainingType.Name}\" 已经包含“{memberName}”的定义";
+        var err = $"类型 \"{Node.TargetData.ContainingType.Name}\" 已经包含“{memberName}”的定义";
         ReportError("NameConflict", err);
     }
 

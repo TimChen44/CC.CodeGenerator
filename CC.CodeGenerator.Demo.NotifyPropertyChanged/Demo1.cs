@@ -6,7 +6,7 @@
  *             
  */
 [AddNotifyPropertyChanged("Id", typeof(long))]
-[AddNotifyPropertyChanged("Name", typeof(string), XmlSummary = "名称")]
+[AddNotifyPropertyChanged("Name", typeof(string), XmlSummary = "xml文档内容")]
 internal partial class Demo1
 {
 

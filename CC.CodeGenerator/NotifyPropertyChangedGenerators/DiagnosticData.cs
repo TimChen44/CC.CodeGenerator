@@ -1,8 +1,7 @@
-﻿#pragma warning disable CS8632
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace CC.CodeGenerato;
+namespace CC.CodeGenerator;
 
 /// <summary>
 /// 诊断信息

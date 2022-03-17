@@ -1,11 +1,11 @@
-﻿#pragma warning disable CS8632
-using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-namespace CC.CodeGenerato.NotifyPropertyChangeds.CodeBuilds;
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+
+namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
 
 //使用特性创建属性
-internal partial class TypeCodeBuilder : CodeBuilderBase<TypeTargetValidation>
+internal partial class NotifyPropTypeCodeBuilder : NotifyPropCodeBuilderBase
 {
-    public TypeCodeBuilder(TypeTargetValidation node) : base(node) { }
+    public NotifyPropTypeCodeBuilder(NotifyPropTypeNode node) : base(node) { }
 
     public int ParameterCount { get; set; }
 
@@ -24,7 +24,7 @@ internal partial class TypeCodeBuilder : CodeBuilderBase<TypeTargetValidation>
     }
 
     /// <summary>
-    /// 规则 1 : 意图不明确,如果需要创建属性,必须设置 PropertyType.
+    /// 规则 1 : 在类型上创建属性,必须设置 PropertyType.
     /// </summary>
     private void Rule1()
     {

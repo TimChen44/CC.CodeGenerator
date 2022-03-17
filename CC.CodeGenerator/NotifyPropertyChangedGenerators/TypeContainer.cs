@@ -1,8 +1,8 @@
-﻿#pragma warning disable CS8632
-namespace CC.CodeGenerato;
-internal class TypeContainer<T> : ICodeBuilder where T : ICodeBuilder, new()
+﻿namespace CC.CodeGenerator;
+public class TypeContainer<T> : ICodeBuilder where T : ICodeBuilder, new()
 {
     private readonly Dictionary<string, T> items = new();
+    public void Clear() => items.Clear();
 
     public T GetItem(INamedTypeSymbol namedType)
     {

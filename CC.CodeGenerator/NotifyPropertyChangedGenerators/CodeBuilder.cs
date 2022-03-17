@@ -1,8 +1,7 @@
-﻿#pragma warning disable CS8632
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 
-namespace CC.CodeGenerato;
-internal class CodeBuilder
+namespace CC.CodeGenerator;
+public class CodeBuilder
 {
     private readonly HashSet<string> partialMatching = new() { "class", "record", "struct", "interface", };
     private readonly List<string> usings = new();
@@ -179,7 +178,9 @@ internal class CodeBuilder
 #pragma warning disable CS8618
 #pragma warning disable CS8612
 #pragma warning disable CS8625
+#pragma warning disable CS8632
 #pragma warning disable CS8603
+#pragma warning disable CS8601
 #pragma warning disable CA1822
 #pragma warning disable CS0169
 #pragma warning disable CS0414

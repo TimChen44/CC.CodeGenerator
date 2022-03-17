@@ -1,14 +1,14 @@
-﻿using CC.CodeGenerato.NotifyPropertyChangeds;
-using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-
-namespace CC.CodeGenerato;
+﻿using CC.CodeGenerator.NotifyPropertyChangeds;
+using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+namespace CC.CodeGenerator;
 
 [Generator]
-public class NotifyPropertyGenerator : GeneratorBase<NotifyPropertyReceiver>
+public class NotifyPropGenerator : GeneratorBase
 {
     public const string attributeName = "AddNotifyPropertyChangedAttribute";
     public const string attributePath = $"CC.CodeGenerator.{attributeName}";
     public const string attributeCtor = $"{attributePath}.{attributeName}";
+    private readonly NotifyPropTypeContainer typeContainer = new();
 
     public override void Initialize(GeneratorInitializationContext context)
     {
@@ -18,34 +18,27 @@ public class NotifyPropertyGenerator : GeneratorBase<NotifyPropertyReceiver>
         base.Initialize(context);
     }
 
+    protected override ISyntaxReceiver GetSyntaxReceiver() => new NotifyPropReceiver();
+
     protected override void Run(GeneratorExecutionContext context)
     {
-        //创建特性
-        CreateAttributeCode(context, out var compilation, out var attributeSymbol);
-
-        var param = new NodeData(context, compilation, attributeSymbol);
-        var typeContainer = new NotifyPropertyTypeContainer();
-
-        //查找标记了特性的成员
-        var members = GetSyntaxReceiver(context)?.Nodes
-            .Select(member => TargetValidationBase.TargetFactory(param, member))
-            .Where(IsTarget)
-            .ToList();
-
-        //将成员合并到相同的类型中
-        members?.ForEach(member => member!.MergeType(typeContainer));
-
-        //开始构建代码
-        typeContainer.Build();
+        typeContainer.Clear();
+        base.Run(context);
     }
-  
 
-    //创建特性,并且加入到编译中
-    private void CreateAttributeCode(GeneratorExecutionContext context
+    protected override void CreateAttributeCode(GeneratorExecutionContext context
         , out Compilation compilation
         , out INamedTypeSymbol attributeSymbol)
     {
+        var attr = context.Compilation.GetTypeByMetadataName(attributePath);
+        if (attr is not null)
+        {
+            compilation = context.Compilation;
+            attributeSymbol = attr;
+            return;
+        }
         var code = @"
+#pragma warning disable IDE0079
 #pragma warning disable CS8632
 namespace CC.CodeGenerator
 {
@@ -109,9 +102,18 @@ namespace CC.CodeGenerator
     }   
 }
 ";
-        var attr = context.AddSourceAndParseText($"{attributeName}.cs", code);
-        compilation = context.Compilation.AddSyntaxTrees(attr);
+        var newAttr = context.AddSourceAndParseText($"{attributeName}.cs", code);
+        compilation = context.Compilation.AddSyntaxTrees(newAttr);
         attributeSymbol = compilation.GetTypeByMetadataName(attributePath)!;
     }
 
+    protected override void MergeType(IEnumerable<NodeBase> nodes)
+    {
+        foreach (NotifyPropNodeBase item in nodes)
+        {
+            typeContainer.GetItem(item.TargetData.ContainingType).AddMember(item);
+        }
+    }
+
+    protected override void BuildCode() => typeContainer.Build();
 }

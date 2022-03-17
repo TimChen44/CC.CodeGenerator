@@ -1,9 +1,7 @@
-﻿#pragma warning disable CS8632
-using CC.CodeGenerato.NotifyPropertyChangeds.CodeBuilds;
-using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-
-namespace CC.CodeGenerato.NotifyPropertyChangeds;
-internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
+using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+namespace CC.CodeGenerator.NotifyPropertyChangeds;
+public partial class NotifyPropCodeBuildManager : ICodeBuilder
 {
     private string? _onPropertyChangedMethodName;
     private string? _setPropertyMethodName;
@@ -14,9 +12,9 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
     private readonly Dictionary<string, Location?> members = new();
 
     #region 待处理的成员
-    public List<TargetValidationBase> TargetValidations { get; } = new();
+    public List<NotifyPropNodeBase> TargetValidations { get; } = new();
 
-    public NotifyPropertyCodeBuildManager AddMember(TargetValidationBase member)
+    public NotifyPropCodeBuildManager AddMember(NotifyPropNodeBase member)
     {
         TargetValidations.Add(member);
         return this;
@@ -38,7 +36,6 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
         set => _setPropertyMethodName = value;
     }
 
-
     private string TestNullOrEmpty(string? value, string defaultValue)
     {
         return string.IsNullOrEmpty(value) ? defaultValue : value!;
@@ -51,7 +48,7 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
         var first = TargetValidations.First();
 
         //初始化现有的成员名称集合
-        InitMemberName(first.ContainingType);
+        InitMemberName(first.TargetData.ContainingType);
 
         //提取要创建的属性
         var buildItems = TargetValidations
@@ -67,7 +64,7 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
     }
 
     //检查单项代码
-    private CodeBuilderBase Test(CodeBuilderBase codeBuilder)
+    private NotifyPropCodeBuilderBase Test(NotifyPropCodeBuilderBase codeBuilder)
     {
         //检测命名冲突
         codeBuilder.TestName(members);
@@ -79,13 +76,13 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
     }
 
     //获取自定义函数名称
-    private void SetHanderName(IEnumerable<CodeBuilderBase> buildItems)
+    private void SetHanderName(IEnumerable<NotifyPropCodeBuilderBase> buildItems)
     {
-        var items = buildItems.OfType<TypeCodeBuilder>().ToArray();
+        var items = buildItems.OfType<NotifyPropTypeCodeBuilder>().ToArray();
         SetPropertyMethodName = Find(x => x.SetPropertyMethodName)!;
         OnPropertyChangedMethodName = Find(x => x.OnPropertyChangedMethodName)!;
 
-        string? Find(Func<TypeCodeBuilder, string?> getItem) =>
+        string? Find(Func<NotifyPropTypeCodeBuilder, string?> getItem) =>
             items.Select(getItem).OfType<string>().LastOrDefault();
     }
 
@@ -99,24 +96,27 @@ internal partial class NotifyPropertyCodeBuildManager : ICodeBuilder
             members[item.Name] = item.Locations.First();
     }
 
-    private void CreateCode(List<CodeBuilderBase> buildItems)
+    private void CreateCode(List<NotifyPropCodeBuilderBase> buildItems)
     {
         var type = TargetValidations.First();
+        var containingType = type.TargetData.ContainingType;
+        var builds = buildItems.Where(x => x.IsBuild()).Select(x => x.PropertyName).ToArray();
+        var props = string.Join(", ", builds);
 
         var codeBuilder = new CodeBuilder()
             .AddUsing("System.Collections.Generic")
             .AddUsing("System.ComponentModel")
             .AddUsing("System.Runtime.CompilerServices")
-            .AddTypeTree(type.ContainingType, "INotifyPropertyChanged")
-            .AddCode(GetHandlerCode());
+            .AddTypeTree(containingType, "INotifyPropertyChanged")
+            .AddCode(GetHandlerCode())
+            .AddLine()
+            .AddLine()
+            .AddLine($"// 生成 [{props}] {builds.Length}个属性");
+
         buildItems.ForEach(x => x.CreateCode(codeBuilder, SetPropertyMethodName));
 
-        var fileName = type.ContainingType.ToDisplayString().Replace("<", "{").Replace(">", "}");
-        fileName = $"pc_{fileName}";
-
-
-        type.NodeData.Context.AddSource(fileName, codeBuilder.ToString());
-
+        var fileName = containingType.ToDisplayString().Replace("<", "{").Replace(">", "}");
+        type.ContextData.Context.AddSourceAndParseText(fileName, codeBuilder.ToString());
     }
 
     private string GetHandlerCode() => @$"

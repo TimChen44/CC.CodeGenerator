@@ -1,17 +1,12 @@
-﻿#pragma warning disable CS8632
-namespace CC.CodeGenerato;
-
-public abstract class ReceiverBase<T> : ISyntaxReceiver where T : SyntaxNode
+﻿namespace CC.CodeGenerator;
+public abstract class ReceiverBase : ISyntaxReceiver
 {
-    protected readonly List<T> nodes = new();
 
-    /// <summary>
-    /// 筛选出来的节点
-    /// </summary>
-    public IEnumerable<T> Nodes => nodes;
+    protected readonly List<NodeBase> nodes = new();
 
     public abstract void OnVisitSyntaxNode(SyntaxNode syntaxNode);
 
-    protected bool TestAttributeCount(MemberDeclarationSyntax member) =>
-        member.AttributeLists.Count > 0;
+    protected bool TestAttributeCount(MemberDeclarationSyntax member) => member.AttributeLists.Count > 0;
+
+    public IEnumerable<NodeBase> Nodes => nodes;  
 }

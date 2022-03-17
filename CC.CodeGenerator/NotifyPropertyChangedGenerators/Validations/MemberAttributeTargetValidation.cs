@@ -1,14 +1,13 @@
-﻿#pragma warning disable CS8632
-namespace CC.CodeGenerato.Validations;
+﻿namespace CC.CodeGenerator.Validations;
 
 /// <summary>
 /// 用于成员的特性验证
 /// </summary>
-internal partial class MemberAttributeTargetValidation : ITargetValidation
+public partial class MemberAttributeTargetValidation : ITargetValidation
 {
     private readonly Lazy<AttributeData[]> attributeDatas;
 
-    public MemberAttributeTargetValidation(NodeData nodeData)
+    public MemberAttributeTargetValidation(ContextData nodeData)
     {
         attributeDatas = new(GetAttributes);
         NodeData = nodeData;
@@ -16,22 +15,22 @@ internal partial class MemberAttributeTargetValidation : ITargetValidation
 
     public bool IsOk() => Attributes.Length > 0;
 
-    public NodeData NodeData { get; }
-
     /// <summary>
     /// 特性的提供者
     /// </summary>
     public SyntaxNode AttributeProvider { get; set; } = null!;
 
+    public ContextData NodeData { get; }
+
     /// <summary>
     /// 目标特性类型
     /// </summary>
-    public INamedTypeSymbol AttributeType { get; set; } = null!;
+    public INamedTypeSymbol AttributeType => NodeData.TargetAttribute;
 
     /// <summary>
     /// 成员关联的符号
     /// </summary>
-    public ISymbol MemberSymbol { get; private set; } = null!;
+    public ISymbol Symbol { get; private set; } = null!;
 
     /// <summary>
     /// 字段 : 包含字段的类型<br/>
@@ -47,17 +46,17 @@ internal partial class MemberAttributeTargetValidation : ITargetValidation
     /// </summary>
     private AttributeData[] GetAttributes()
     {
-        MemberSymbol = AttributeProvider.GetDeclaredSymbol(NodeData.Compilation)!;
-        return MemberSymbol is null || MemberSymbol.IsStatic
+        Symbol = AttributeProvider.GetDeclaredSymbol(NodeData.Compilation)!;
+        return Symbol is null || Symbol.IsStatic
             ? Array.Empty<AttributeData>()
             : GetTargetAttributeDatas();
     }
 
     private AttributeData[] GetTargetAttributeDatas()
     {
-        var res = MemberSymbol.GetTargetAttributes(AttributeType);
+        var res = Symbol.GetTargetAttributes(AttributeType);
         if (res is null) return Array.Empty<AttributeData>();
-        ContainingType = MemberSymbol switch
+        ContainingType = Symbol switch
         {
             IFieldSymbol field => field.ContainingType,
             INamedTypeSymbol namedTypeSymbol => namedTypeSymbol,

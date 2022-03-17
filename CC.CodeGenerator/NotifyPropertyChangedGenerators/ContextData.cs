@@ -1,9 +1,8 @@
-﻿#pragma warning disable CS8632
-namespace CC.CodeGenerato;
+﻿namespace CC.CodeGenerator;
 
-internal partial class NodeData
+public partial class ContextData
 {
-    public NodeData(GeneratorExecutionContext context
+    public ContextData(GeneratorExecutionContext context
         , Compilation compilation
         , INamedTypeSymbol targetAttribute)
     {
@@ -17,6 +16,9 @@ internal partial class NodeData
 
     public Compilation Compilation { get; }
 
+    /// <summary>
+    /// 目标特性
+    /// </summary>
     public INamedTypeSymbol TargetAttribute { get; }
 
 }

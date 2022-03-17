@@ -1,12 +1,10 @@
-﻿#pragma warning disable CS8632
-using CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-
-namespace CC.CodeGenerato.NotifyPropertyChangeds.CodeBuilds;
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
 
 //使用字段创建属性
-internal partial class FieldCodeBuilder : CodeBuilderBase<FieldTargetValidation>
+internal partial class NotifyPropFieldCodeBuilder : NotifyPropCodeBuilderBase
 {
-    public FieldCodeBuilder(FieldTargetValidation node) : base(node) { }
+    public NotifyPropFieldCodeBuilder(NotifyPropNodeBase node) : base(node) { }
 
     public VariableDeclaratorSyntax Variable { get; set; } = null!;
 
@@ -27,7 +25,7 @@ internal partial class FieldCodeBuilder : CodeBuilderBase<FieldTargetValidation>
     private void Rule1()
     {
         if (SetPropertyMethodName is null && OnPropertyChangedMethodName is null) return;
-        ReportError("field01", $"在字段 {Variable} 上无法自定义函数名 。(SetProperty, OnPropertyChanged 仅在类型上设置有效。)");
+        ReportError("field01", $"在字段 {Variable.Identifier} 上无法自定义函数名 。(SetProperty, OnPropertyChanged 仅在类型上设置有效。)");
     }
 
     /// <summary>
@@ -39,13 +37,13 @@ internal partial class FieldCodeBuilder : CodeBuilderBase<FieldTargetValidation>
         var location = default(Location);
         var offset = 1;
 
-        if (TargetValidationBase.FormatName(Variable.ToString()) is null)
+        if (NotifyPropNodeBase.FormatName(Variable.ToString()) is null)
         {
             location = Variable.GetLocation();
             offset = 0;
         }
-        ReportError("field02", $"使用字段 {Variable} 创建属性时，字段名或设置的属性名不能为 \"\"、全符号、全数字，请参考命名规则。",
-            location: location, offset: offset);
+        ReportError("field02", $"使用字段 {Variable.Identifier} 创建属性时，字段名或设置的属性名不能为 \"\"、全符号、全数字，请参考命名规则。",
+            source: location, offset: offset);
     }
 
     /// <summary>
@@ -53,9 +51,9 @@ internal partial class FieldCodeBuilder : CodeBuilderBase<FieldTargetValidation>
     /// </summary>
     private void Rule3()
     {
-        var target = $"{NotifyPropertyGenerator.attributeCtor}(string, System.Type)";
+        var target = $"{NotifyPropGenerator.attributeCtor}(string, System.Type)";
         var ctor = AttributeData.AttributeConstructor!.ToString();
         if (ctor.StartsWith(target))
-            ReportError("field03", $"在字段 {Variable} 上创建属性时 不能修改类型，参数 “propertyType”无效");
+            ReportError("field03", $"在字段 {Variable.Identifier} 上创建属性时 不能修改类型，参数 “propertyType”无效");
     }
 }

@@ -1,22 +1,14 @@
-﻿#pragma warning disable CS8632
-using System.Diagnostics;
-namespace CC.CodeGenerato;
+﻿using System.Diagnostics;
+namespace CC.CodeGenerator;
+
 public abstract class GeneratorBase : ISourceGenerator
 {
     public virtual void Initialize(GeneratorInitializationContext context) =>
         context.RegisterForSyntaxNotifications(GetSyntaxReceiver);
 
-    /// <summary>
-    /// 返回SyntaxNode
-    /// </summary>
     protected abstract ISyntaxReceiver GetSyntaxReceiver();
 
-    protected void DebuggerLaunch()
-    {
-        if (!Debugger.IsAttached) Debugger.Launch();
-    }
-
-    public void Execute(GeneratorExecutionContext context)
+    public virtual void Execute(GeneratorExecutionContext context)
     {        
         try
         {
@@ -28,10 +20,38 @@ public abstract class GeneratorBase : ISourceGenerator
         }
     }
 
+    protected virtual void Run(GeneratorExecutionContext context)
+    {
+        //创建特性
+        CreateAttributeCode(context, out var compilation, out var attributeSymbol);
+        var contextData = new ContextData(context, compilation, attributeSymbol);
+
+        //查找标记了特性的成员
+        var members = (context.SyntaxReceiver as ReceiverBase)?.Nodes
+            .Select(node => node.SetContext(contextData))
+            .Where(node => node.IsOk())
+            .ToArray() ?? Array.Empty<NodeBase>();
+
+        //将成员合并到相同的类型中
+        MergeType(members);
+
+        //构建代码
+        BuildCode();
+    }   
+
     /// <summary>
-    /// 开始执行
+    /// 创建特性
     /// </summary>
-    protected abstract void Run(GeneratorExecutionContext context);
+    protected abstract void CreateAttributeCode(GeneratorExecutionContext context
+        , out Compilation compilation
+        , out INamedTypeSymbol attributeSymbol);
+
+    protected abstract void BuildCode();
+
+    /// <summary>
+    /// 将成员合并到相同的类型中
+    /// </summary>
+    protected abstract void MergeType(IEnumerable<NodeBase> nodes);
 
     protected void CreateErrorFile(GeneratorExecutionContext context, Exception ex)
     {
@@ -40,16 +60,8 @@ public abstract class GeneratorBase : ISourceGenerator
         context.AddSource(fileName, error);
     }
 
-    /// <summary>
-    /// 验证是否为目标
-    /// </summary>
-    protected bool IsTarget<T>(T item) => item is ITargetValidation target && target.IsOk();
-}
-
-public abstract class GeneratorBase<T> : GeneratorBase
-          where T : class, ISyntaxReceiver, new()
-{
-    protected override ISyntaxReceiver GetSyntaxReceiver() => new T();
-
-    protected T? GetSyntaxReceiver(GeneratorExecutionContext context) => context.SyntaxReceiver as T;
+    protected void DebuggerLaunch()
+    {
+        if (!Debugger.IsAttached) Debugger.Launch();
+    }
 }

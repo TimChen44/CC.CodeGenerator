@@ -1,18 +1,15 @@
-﻿#pragma warning disable CS8632
-using CC.CodeGenerato.NotifyPropertyChangeds.CodeBuilds;
-namespace CC.CodeGenerato.NotifyPropertyChangeds.TargetValidations;
-internal partial class TypeTargetValidation : TargetValidationBase<MemberDeclarationSyntax>
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
+
+namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+/// <summary>
+/// 验证类型上的特性
+/// </summary>
+internal partial class NotifyPropTypeNode : NotifyPropNodeBase
 {
-    public TypeTargetValidation(NodeData nodeData, MemberDeclarationSyntax member)
-        : base(nodeData, member)
-    {
-    }
+    internal override IEnumerable<NotifyPropCodeBuilderBase> CreateCodeBuilders() => 
+        TargetData.Attributes.Select(CreateTypeCodeBuilder);
 
-    public override IEnumerable<CodeBuilderBase> CreateCodeBuilders() =>
-        TargetValidation.Attributes
-        .Select(CreateTypeCodeBuilder);
-
-    private TypeCodeBuilder CreateTypeCodeBuilder(AttributeData attribute)
+    private NotifyPropTypeCodeBuilder CreateTypeCodeBuilder(AttributeData attribute)
     {
         var ctor = attribute.AttributeConstructor!;
         var propName = GetPropName(ctor, attribute);
@@ -22,7 +19,7 @@ internal partial class TypeTargetValidation : TargetValidationBase<MemberDeclara
         return new(this)
         {
             AttributeData = attribute,
-            SyntaxNode = Member,
+            SyntaxNode = SyntaxNode,
             PropertyName = propName,
             FieldName = fieldName,
             TypeName = typeName,
@@ -32,15 +29,15 @@ internal partial class TypeTargetValidation : TargetValidationBase<MemberDeclara
 
     private string? GetPropName(IMethodSymbol method, AttributeData attribute)
     {
-        var target = $"{NotifyPropertyGenerator.attributeCtor}(string";
+        var target = $"{NotifyPropGenerator.attributeCtor}(string";
         if (!method.ToString().StartsWith(target)) return default;
         var res = attribute.GetCtorArgumentValue(0)!;
-        return GetInitialLower(FormatName(res), false);
+        return FormatName(res);
     }
 
     private string? GetPropType(IMethodSymbol method, AttributeData attribute)
     {
-        var target = $"{NotifyPropertyGenerator.attributeCtor}(string, System.Type)";
+        var target = $"{NotifyPropGenerator.attributeCtor}(string, System.Type)";
         if (!method.ToString().StartsWith(target)) return default;
         var res = (ITypeSymbol)attribute.ConstructorArguments[1].Value!;
         return res.GetTypeName();

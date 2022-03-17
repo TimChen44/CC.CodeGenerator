@@ -1,9 +1,11 @@
-﻿namespace CC.CodeGenerato;
+﻿namespace CC.CodeGenerator;
 
 /// <summary>
 /// 目标验证
 /// </summary>
-internal interface ITargetValidation 
+internal interface ITargetValidation
 {
-    bool IsOk();  
+    bool IsOk();
 }
+
+
