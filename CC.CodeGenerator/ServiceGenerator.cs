@@ -15,7 +15,7 @@ public class ServiceGenerator : ISourceGenerator
 {
     public void Initialize(GeneratorInitializationContext context)
     {
-#if !DEBUG
+#if DEBUG
 
         if (!Debugger.IsAttached)
         {
@@ -45,51 +45,15 @@ public class ServiceGenerator : ISourceGenerator
 
     public void Execute(GeneratorExecutionContext context)
     {
-        //生成ServiceAttribute
-        SyntaxTree serviceAtt = CreateServiceAttribute(context);
-
         if (!(context.SyntaxReceiver is DtoSyntaxReceiver receiver))
         {
             return;
         }
 
         //把DtoAttribute加入当前的编译中
-        Compilation compilation = context.Compilation.AddSyntaxTrees(serviceAtt);
+        Compilation compilation = context.Compilation;
 
         CreateService(context, compilation, receiver.CandidateClasses);
-    }
-
-    /// <summary>
-    /// 创建DtoAttribute代码
-    /// </summary>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    public SyntaxTree CreateServiceAttribute(GeneratorExecutionContext context)
-    {
-        string attTemplate = @"
-namespace CC.CodeGenerator;
-
-//标记类是否时Service类
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public class ServiceAttribute: Attribute
-{
-    public ELifeCycle LifeCycle { get; set; } = ELifeCycle.Scoped;
-}
-
-/// <summary>
-/// DI生命周期
-/// </summary>
-public enum ELifeCycle
-{
-    Singleton = 0,
-    Scoped = 1,
-    Transient = 2,
-}
-";
-        SourceText sourceText = SourceText.From(attTemplate, Encoding.UTF8);
-        context.AddSource("ServiceAttribute.cs", sourceText);
-
-        return CSharpSyntaxTree.ParseText(SourceText.From(attTemplate, Encoding.UTF8));
     }
 
 

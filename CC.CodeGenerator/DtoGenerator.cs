@@ -48,16 +48,13 @@ public class DtoGenerator : ISourceGenerator
 
     public void Execute(GeneratorExecutionContext context)
     {
-        //生成DtoAttribute
-        SyntaxTree dtoAtt = CreateDtoAttribute(context);
-
         if (!(context.SyntaxReceiver is DtoSyntaxReceiver receiver))
         {
             return;
         }
 
         //把DtoAttribute加入当前的编译中
-        Compilation compilation = context.Compilation.AddSyntaxTrees(dtoAtt);
+        Compilation compilation = context.Compilation;
 
         //获得DtoAttribute类符号
         INamedTypeSymbol dtoAttSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.DtoAttribute");
@@ -67,37 +64,6 @@ public class DtoGenerator : ISourceGenerator
         {
             CreateDto(context, compilation, dtoAttSymbol, dtoClass);
         }
-    }
-
-    /// <summary>
-    /// 创建DtoAttribute代码
-    /// </summary>
-    /// <param name="context"></param>
-    /// <returns></returns>
-    public SyntaxTree CreateDtoAttribute(GeneratorExecutionContext context)
-    {
-        string attTemplate = @"
-namespace CC.CodeGenerator;
-
-//标记类是否时Dto类
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public class DtoAttribute: Attribute
-{
-    public string Context { get; set; }
-
-    public Type Entity { get; set; }
-}
-
-//标记属性是否需要忽略
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-public class IgnoreAttribute : Attribute
-{
-}
-";
-        SourceText sourceText = SourceText.From(attTemplate, Encoding.UTF8);
-        context.AddSource("DtoAttribute.cs", sourceText);
-
-        return CSharpSyntaxTree.ParseText(SourceText.From(attTemplate, Encoding.UTF8));
     }
 
     public void CreateDto(GeneratorExecutionContext context, Compilation compilation, INamedTypeSymbol dtoAttSymbol, TypeDeclarationSyntax dtoClass)

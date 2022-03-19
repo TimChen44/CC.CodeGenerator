@@ -17,6 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\CC.CodeGenerator.Attribute\CC.CodeGenerator.Attribute.csproj" />
 		<ProjectReference Include="..\CC.CodeGenerator.Demo.Entity\CC.CodeGenerator.Demo.Entity.csproj" />
 		<ProjectReference Include="..\CC.CodeGenerator\CC.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

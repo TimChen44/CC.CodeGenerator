@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>10</LangVersion>
+		<Description>常见简单业务的代码自动生成，解放劳动力</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageOutputPath>../Packages/</PackageOutputPath>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+		<Version>1.2.6</Version>
+		<PackageProjectUrl>https://github.com/TimChen44/CC.CodeGenerator</PackageProjectUrl>
+		<RootNamespace>CC.CodeGenerator</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
+
+</Project>
