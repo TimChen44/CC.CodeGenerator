@@ -1,7 +1,8 @@
-﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
-using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+﻿#pragma warning disable CS8632 
+using CC.CodeGenerator.NotifyPropertyChangeds.CodeBuilds;
+using CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
 namespace CC.CodeGenerator.NotifyPropertyChangeds;
-public partial class NotifyPropCodeBuildManager : ICodeBuilder
+public partial class NotifyPropCodeBuildManager : CodeBuildManagerBase<NotifyPropNodeBase>
 {
     private string? _onPropertyChangedMethodName;
     private string? _setPropertyMethodName;
@@ -11,16 +12,6 @@ public partial class NotifyPropCodeBuildManager : ICodeBuilder
     /// </summary>
     private readonly Dictionary<string, Location?> members = new();
 
-    #region 待处理的成员
-    public List<NotifyPropNodeBase> TargetValidations { get; } = new();
-
-    public NotifyPropCodeBuildManager AddMember(NotifyPropNodeBase member)
-    {
-        TargetValidations.Add(member);
-        return this;
-    }
-
-    #endregion
 
     #region 自定义函数名称
 
@@ -43,15 +34,15 @@ public partial class NotifyPropCodeBuildManager : ICodeBuilder
 
     #endregion
 
-    public void Build()
+    public override void Build()
     {
-        var first = TargetValidations.First();
+        var first = Items.First();
 
         //初始化现有的成员名称集合
         InitMemberName(first.TargetData.ContainingType);
 
         //提取要创建的属性
-        var buildItems = TargetValidations
+        var buildItems = Items
             .SelectMany(x => x.CreateCodeBuilders())
             .Select(Test) //检查单项代码
             .ToList();
@@ -98,7 +89,7 @@ public partial class NotifyPropCodeBuildManager : ICodeBuilder
 
     private void CreateCode(List<NotifyPropCodeBuilderBase> buildItems)
     {
-        var type = TargetValidations.First();
+        var type = Items.First();
         var containingType = type.TargetData.ContainingType;
         var builds = buildItems.Where(x => x.IsBuild()).Select(x => x.PropertyName).ToArray();
         var props = string.Join(", ", builds);
@@ -116,7 +107,7 @@ public partial class NotifyPropCodeBuildManager : ICodeBuilder
         buildItems.ForEach(x => x.CreateCode(codeBuilder, SetPropertyMethodName));
 
         var fileName = containingType.ToDisplayString().Replace("<", "{").Replace(">", "}");
-        type.ContextData.Context.AddSourceAndParseText(fileName, codeBuilder.ToString());
+        type.ContextData.Context.AddSource(fileName, codeBuilder.ToString());
     }
 
     private string GetHandlerCode() => @$"

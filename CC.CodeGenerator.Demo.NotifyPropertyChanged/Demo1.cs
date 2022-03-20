@@ -7,9 +7,8 @@
  */
 [AddNotifyPropertyChanged("Id", typeof(long))]
 [AddNotifyPropertyChanged("Name", typeof(string), XmlSummary = "xml文档内容")]
-internal partial class Demo1
+public partial class Demo1
 {
-
     //验证是否生成
     void _()
     {

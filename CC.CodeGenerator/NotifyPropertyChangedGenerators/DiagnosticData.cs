@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+﻿#pragma warning disable CS8632 
 using Microsoft.CodeAnalysis.Text;
 
 namespace CC.CodeGenerator;

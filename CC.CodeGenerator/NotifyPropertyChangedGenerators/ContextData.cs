@@ -1,25 +1,31 @@
-﻿namespace CC.CodeGenerator;
+﻿#pragma warning disable CS8632 
+namespace CC.CodeGenerator;
 
-public partial class ContextData
+public class ContextData
 {
     public ContextData(GeneratorExecutionContext context
-        , Compilation compilation
-        , INamedTypeSymbol targetAttribute)
+        , INamedTypeSymbol? targetAttribute)
     {
         Context = context;
-        Compilation = compilation;
         TargetAttribute = targetAttribute;
     }
 
-
     public GeneratorExecutionContext Context { get; }
 
-    public Compilation Compilation { get; }
+    public Compilation Compilation { get; set; } = null!;
 
     /// <summary>
     /// 目标特性
     /// </summary>
-    public INamedTypeSymbol TargetAttribute { get; }
+    public INamedTypeSymbol? TargetAttribute { get; }
 
+    public ISymbol? GetSymbolInfo(SyntaxNode? node) => node?.GetInfoSymbol(Compilation);
+
+    public ISymbol? GetDeclaredSymbol(SyntaxNode? node) => node?.GetDeclaredSymbol(Compilation);
+
+    internal bool ReportError(DiagnosticData data, bool result = false)
+    {
+        data.ReportDiagnostic(Context);
+        return result;
+    }
 }
-
