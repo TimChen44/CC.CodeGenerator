@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿#pragma warning disable CS8632 
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace CC.CodeGenerator;
 public class CodeBuilder

@@ -5,7 +5,7 @@
  *  从字段创建属性
  * 
  */
-internal partial class Demo2
+public partial record Demo2
 {
     [AddNotifyPropertyChanged]
     private long _id;

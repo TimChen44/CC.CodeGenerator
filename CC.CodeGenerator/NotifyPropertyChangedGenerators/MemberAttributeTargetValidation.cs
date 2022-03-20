@@ -1,9 +1,10 @@
-﻿namespace CC.CodeGenerator.Validations;
+﻿#pragma warning disable CS8632 
+namespace CC.CodeGenerator;
 
 /// <summary>
 /// 用于成员的特性验证
 /// </summary>
-public partial class MemberAttributeTargetValidation : ITargetValidation
+public partial class MemberAttributeTargetValidation
 {
     private readonly Lazy<AttributeData[]> attributeDatas;
 
@@ -13,7 +14,7 @@ public partial class MemberAttributeTargetValidation : ITargetValidation
         NodeData = nodeData;
     }
 
-    public bool IsOk() => Attributes.Length > 0;
+    public bool IsTarget() => Attributes.Length > 0;
 
     /// <summary>
     /// 特性的提供者
@@ -25,7 +26,7 @@ public partial class MemberAttributeTargetValidation : ITargetValidation
     /// <summary>
     /// 目标特性类型
     /// </summary>
-    public INamedTypeSymbol AttributeType => NodeData.TargetAttribute;
+    public INamedTypeSymbol? AttributeType => NodeData.TargetAttribute;
 
     /// <summary>
     /// 成员关联的符号
@@ -63,5 +64,5 @@ public partial class MemberAttributeTargetValidation : ITargetValidation
             _ => throw new Exception("非预期类型")
         };
         return res;
-    }    
+    }
 }

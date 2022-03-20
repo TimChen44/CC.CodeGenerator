@@ -1,7 +1,6 @@
-﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
-using CC.CodeGenerator.Validations;
-
-namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+﻿#pragma warning disable CS8632 
+using CC.CodeGenerator.NotifyPropertyChangeds.CodeBuilds;
+namespace CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
 public abstract class NotifyPropNodeBase : NodeBase
 {
     private static readonly HashSet<char> ignoreSymbol = 
@@ -9,7 +8,7 @@ public abstract class NotifyPropNodeBase : NodeBase
 
     public MemberAttributeTargetValidation TargetData { get; private set; } = null!;
 
-    public override bool IsOk() => TargetData.IsOk();
+    public override bool IsTarget() => TargetData.IsTarget();
 
     public override NodeBase SetContext(ContextData context)
     {

@@ -1,15 +1,27 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.CodeAnalysis;
+
 namespace CC.CodeGenerator;
 
 public abstract class GeneratorBase : ISourceGenerator
 {
-    public virtual void Initialize(GeneratorInitializationContext context) =>
+    public virtual void Initialize(GeneratorInitializationContext context)
+    {
+        context.RegisterForPostInitialization(RegCallback);
         context.RegisterForSyntaxNotifications(GetSyntaxReceiver);
+    }
+
+    protected virtual void RegCallback(GeneratorPostInitializationContext context) { }
+
+
+    /// <summary>
+    /// 返回特性的FullName
+    /// </summary>
+    protected abstract string AttributeFullName { get; }
 
     protected abstract ISyntaxReceiver GetSyntaxReceiver();
 
     public virtual void Execute(GeneratorExecutionContext context)
-    {        
+    {
         try
         {
             Run(context);
@@ -21,15 +33,17 @@ public abstract class GeneratorBase : ISourceGenerator
     }
 
     protected virtual void Run(GeneratorExecutionContext context)
-    {
-        //创建特性
-        CreateAttributeCode(context, out var compilation, out var attributeSymbol);
-        var contextData = new ContextData(context, compilation, attributeSymbol);
+{
+        var attributeSymbol = context.Compilation.GetTypeByMetadataName(AttributeFullName);
+        var contextData = new ContextData(context, attributeSymbol)
+        {
+            Compilation = GetCompilation(context)
+        };
 
         //查找标记了特性的成员
         var members = (context.SyntaxReceiver as ReceiverBase)?.Nodes
             .Select(node => node.SetContext(contextData))
-            .Where(node => node.IsOk())
+            .Where(node => node.IsTarget())
             .ToArray() ?? Array.Empty<NodeBase>();
 
         //将成员合并到相同的类型中
@@ -37,14 +51,9 @@ public abstract class GeneratorBase : ISourceGenerator
 
         //构建代码
         BuildCode();
-    }   
+    }
 
-    /// <summary>
-    /// 创建特性
-    /// </summary>
-    protected abstract void CreateAttributeCode(GeneratorExecutionContext context
-        , out Compilation compilation
-        , out INamedTypeSymbol attributeSymbol);
+    protected virtual Compilation GetCompilation(GeneratorExecutionContext context) => context.Compilation;
 
     protected abstract void BuildCode();
 
@@ -63,5 +72,7 @@ public abstract class GeneratorBase : ISourceGenerator
     protected void DebuggerLaunch()
     {
         if (!Debugger.IsAttached) Debugger.Launch();
+        Debug.Print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
     }
+
 }

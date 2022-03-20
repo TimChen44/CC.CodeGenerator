@@ -5,3 +5,4 @@ global using System.Linq;
 global using System;
 global using System.Text;
 global using CC.CodeGenerator;
+global using System.Diagnostics;

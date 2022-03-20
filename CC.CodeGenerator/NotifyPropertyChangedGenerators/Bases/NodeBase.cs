@@ -1,5 +1,5 @@
 ﻿namespace CC.CodeGenerator;
-public abstract class NodeBase : ITargetValidation
+public abstract class NodeBase 
 {
     public SyntaxNode SyntaxNode { get; set; } = null!;
 
@@ -11,5 +11,5 @@ public abstract class NodeBase : ITargetValidation
         return this;
     }
 
-    public abstract bool IsOk();
+    public abstract bool IsTarget();
 }
