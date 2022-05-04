@@ -6,7 +6,7 @@
 */
 
 [AddNotifyPropertyChanged]
-internal partial class Demo4
+public partial class Demo4
 {
     //"代码片段"创建
     public int MyProperty { get => _MyProperty; set => SetProperty(ref _MyProperty, value); }

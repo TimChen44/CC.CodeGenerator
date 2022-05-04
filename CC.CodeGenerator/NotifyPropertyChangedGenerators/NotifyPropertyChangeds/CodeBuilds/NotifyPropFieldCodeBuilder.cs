@@ -1,5 +1,6 @@
-﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
-namespace CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropCodeBuilds;
+﻿#pragma warning disable CS8632 
+using CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
+namespace CC.CodeGenerator.NotifyPropertyChangeds.CodeBuilds;
 
 //使用字段创建属性
 internal partial class NotifyPropFieldCodeBuilder : NotifyPropCodeBuilderBase

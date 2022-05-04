@@ -8,7 +8,7 @@
 
 [AddNotifyPropertyChanged(SetPropertyMethodName ="SetXX", OnPropertyChangedMethodName ="OnXX")]
 [AddNotifyPropertyChanged("Id", typeof(int))]
-internal partial class Demo3
+public partial class Demo3
 {
     [AddNotifyPropertyChanged]
     private string? _name = "";

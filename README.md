@@ -93,17 +93,56 @@ public class WeatherForecastService
 ## 4. 自动实现INotifyPropertyChanged接口
 
 ```csharp
-[AddNotifyPropertyChanged]
-internal partial class Demo
+[AddNotifyPropertyChanged("Id", typeof(long), XmlSummary = "从类上创建属性")]
+partial class Demo0
 {
-    public int MyProperty { get => _MyProperty; set => SetProperty(ref _MyProperty, value); }
-    private int _MyProperty;
-
+    [AddNotifyPropertyChanged(XmlSummary = "从字段创建属性")]
+    private string _name;
 }
 ```
-
+生成代码如下
 ```csharp
-var data = new Demo();
-data.PropertyChanged += (s, e) => Console.WriteLine($"属性{e.PropertyName}被修改");
-data.MyProperty = 1;
+partial class Demo0  : INotifyPropertyChanged
+{
+    
+    #region 接口相关
+    
+    public event PropertyChangedEventHandler? PropertyChanged;
+    
+    private bool SetProperty<T>(ref T storage, T value , [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
+        storage = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+    
+    private void OnPropertyChanged(string? propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    
+    #endregion
+    
+    #region 生成的属性和字段
+
+    private long _id;
+    /// <summary>
+    /// 从类上创建属性
+    /// </summary>
+    public long Id
+    {
+        get => _id;
+        set => SetProperty(ref _id, value);
+    }
+    
+    /// <summary>
+    /// 从字段创建属性
+    /// </summary>
+    public string? Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
+
+    #endregion
+}
 ```

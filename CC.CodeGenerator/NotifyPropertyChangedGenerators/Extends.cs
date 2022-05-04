@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿#pragma warning disable CS8632 
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Reflection;
@@ -19,17 +20,16 @@ internal static class Extends
     /// <summary>
     /// 语法引用的符号(用于调用表达式)
     /// </summary>
-    public static ISymbol? GetSymbol(this SyntaxNode node, Compilation compilation) =>
+    public static ISymbol? GetInfoSymbol(this SyntaxNode node, Compilation compilation) =>
         compilation.GetSemanticModel(node.SyntaxTree).GetSymbolInfo(node).Symbol;
 
     /// <summary>
     /// 语法引用的符号(用于调用表达式)
     /// </summary>
-    public static T? GetSymbol<T>(this SyntaxNode node, Compilation compilation)
-        where T : class, ISymbol => node.GetSymbol(compilation) as T;
+    public static T? GetInfoSymbol<T>(this SyntaxNode node, Compilation compilation)
+        where T : class, ISymbol => node.GetInfoSymbol(compilation) as T;
 
     #endregion
-
 
     #region GeneratorExecutionContext
 
@@ -50,14 +50,16 @@ internal static class Extends
 
     #endregion
 
-    #region ITypeSymbol
+    #region ISymbol
 
     /// <summary>
     /// 返回指定类型的特性集合
     /// </summary>
-    public static AttributeData[] GetTargetAttributes(this ISymbol typeSymbol, INamedTypeSymbol target) =>
-        typeSymbol.GetAttributes()
-        .Where(x => x.AttributeDataEquals(target)).ToArray();
+    public static AttributeData[] GetTargetAttributes(this ISymbol typeSymbol, INamedTypeSymbol? target)
+    {
+        if (target is null) return Array.Empty<AttributeData>();
+        return typeSymbol.GetAttributes().Where(x => x.AttributeDataEquals(target)).ToArray();
+    }
 
     private static bool AttributeDataEquals(this AttributeData attributeData, INamedTypeSymbol target) =>
         attributeData.AttributeClass?
@@ -69,6 +71,26 @@ internal static class Extends
         var res = type.ToString();
         return res.EndsWith("?") || type.IsValueType ? res : $"{res}?";
     }
+
+    #endregion
+
+    #region GetSyntaxNode
+    public static SyntaxNode? GetSyntaxNode(this ISymbol? symbol) =>
+       GetSyntaxNode<SyntaxNode>(symbol);
+
+    public static T? GetSyntaxNode<T>(this ISymbol? symbol) =>
+        GetSyntaxNodes(symbol).OfType<T>().FirstOrDefault();
+
+    public static SyntaxNode[]? GetSyntaxNodes(this ISymbol? symbol)
+    {
+        var root = symbol?.Locations.ToArray().FirstOrDefault().SourceTree?.GetRoot();
+        return GetSyntaxNodes(symbol, root);
+    }
+
+    private static SyntaxNode[]? GetSyntaxNodes(ISymbol? symbol, SyntaxNode? root) =>
+        symbol?.Locations
+        .Select(x => root?.FindNode(x.SourceSpan))
+        .OfType<SyntaxNode>().ToArray();
     #endregion
 
     #region AttributeData
@@ -108,7 +130,7 @@ internal static class Extends
     }
     #endregion
 
-    #region 字符串
+    #region 其他
     public static IEnumerable<string> GetLines(this string value)
     {
         using var sr = new StringReader(value);
@@ -118,6 +140,9 @@ internal static class Extends
             yield return line;
         }
     }
+
+    public static List<T> ToList<T>(this IEnumerable<object> items) => 
+        items.OfType<T>().ToList();
     #endregion
 
 }

@@ -1,4 +1,4 @@
-﻿using CC.CodeGenerator.NotifyPropertyChangeds.NotifyPropValidations;
+﻿using CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
 namespace CC.CodeGenerator.NotifyPropertyChangeds;
 public class NotifyPropReceiver : ReceiverBase
 {
@@ -6,23 +6,14 @@ public class NotifyPropReceiver : ReceiverBase
     {
         switch (syntaxNode)
         {
-            case ClassDeclarationSyntax cds:
-                AddNode(cds, () => new NotifyPropTypeNode() { SyntaxNode = syntaxNode });
+            case ClassDeclarationSyntax or RecordDeclarationSyntax:
+                AddNode(new NotifyPropTypeNode() { SyntaxNode = syntaxNode });
                 break;
-            case RecordDeclarationSyntax rds:
-                AddNode(rds, () => new NotifyPropTypeNode() { SyntaxNode = syntaxNode });
+            case FieldDeclarationSyntax:
+                AddNode(new NotifyPropFieldNode() { SyntaxNode = syntaxNode });
                 break;
-            case FieldDeclarationSyntax fds:
-                AddNode(fds, () => new NotifyPropFieldNode() { SyntaxNode = syntaxNode });
-                break;
-            default:
+            default: 
                 break;
         }
     }
-
-    private void AddNode(MemberDeclarationSyntax member, Func<NodeBase> func)
-    {
-        if (TestAttributeCount(member)) nodes.Add(func());
-    }
-
 }
