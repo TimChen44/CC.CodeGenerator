@@ -62,6 +62,6 @@ public abstract class GeneratorBase : ISourceGenerator
 
     protected void DebuggerLaunch()
     {
-        if (!Debugger.IsAttached) Debugger.Launch();
+        //if (!Debugger.IsAttached) Debugger.Launch();
     }
 }

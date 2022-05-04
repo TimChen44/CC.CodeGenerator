@@ -18,4 +18,7 @@ namespace CC.CodeGenerator.PackageDemo
         [Ignore]
         public string Disply => $"{UserName}";
     }
+
+
+
 }

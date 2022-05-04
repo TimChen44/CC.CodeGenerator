@@ -20,10 +20,10 @@ public class DtoGenerator : ISourceGenerator
     {
 #if DEBUG
 
-        //if (!Debugger.IsAttached)
-        //{
-        //    Debugger.Launch();
-        //}
+        if (!Debugger.IsAttached)
+        {
+            Debugger.Launch();
+        }
 
 #endif
 
@@ -139,6 +139,9 @@ public partial {typeName} {dtoSymbol.Name}
 
     #endregion 
 }}
+
+{EntitySelectExtension(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
+
 ";
 
         context.AddSource($@"{dtoSymbol.ContainingNamespace.ToDisplayString()}.{dtoSymbol.Name}.cs", SourceText.From(dtoCode, Encoding.UTF8));
@@ -207,6 +210,7 @@ public partial {typeName} {dtoSymbol.Name}
     /// <summary>
     /// EntitySelect
     /// </summary>
+    [Obsolete(""使用扩展函数“SelectGen”替代"")]
     public static IQueryable<{dtoSymbol.Name}> SelectGen(IQueryable<{entitySymbol.Name}> query)
     {{
         return query.Select(x => new {dtoSymbol.Name}()
@@ -216,6 +220,37 @@ public partial {typeName} {dtoSymbol.Name}
     }}";
 
     }
+
+
+   private string EntitySelectExtension(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    {
+        if (entitySymbol == null) return null;
+
+        var code = new StringBuilder();
+        foreach (var entityProp in entityProperties)
+        {
+            var dtoProp = dtoProperties.FirstOrDefault(x => x.Name == entityProp.Name);
+            if (dtoProp == null) continue;
+            code.AppendLine($"            {dtoProp.Name} = x.{entityProp.Name},");
+        }
+
+        return @$"
+public static class {dtoSymbol.Name}Extension
+{{
+    /// <summary>
+    /// EntitySelect
+    /// </summary>
+    public static IQueryable<{dtoSymbol.Name}> SelectGen(this IQueryable<{entitySymbol.Name}> query)
+    {{
+        return query.Select(x => new {dtoSymbol.Name}()
+        {{
+{code}
+        }});
+    }}
+}}";
+
+    }
+
 
     #endregion
 
@@ -228,6 +263,7 @@ public partial {typeName} {dtoSymbol.Name}
         List<string> keyInits = new List<string>();
         foreach (var keyId in keyIds)
         {
+            if (keyId.Type.ToString() != "System.Guid") return "";//如果主键中包含非Guid的对象，那么就不要生成初始化代码
             keyInits.Add($"{keyId.Name} = Guid.NewGuid()");
         }
         var keyInit = keyInits.Aggregate((a, b) => a + ", " + b);
@@ -264,7 +300,7 @@ public partial {typeName} {dtoSymbol.Name}
     /// <returns></returns>
     public static {dtoSymbol.Name}? LoadGen({contextName} context, {keyParameter})
     {{
-        return SelectGen(context.{entitySymbol.Name}.Where(x => {keyCompare})).FirstOrDefault();
+        return context.{entitySymbol.Name}.Where(x => {keyCompare}).SelectGen().FirstOrDefault();
     }}";
     }
 
@@ -300,7 +336,7 @@ public partial {typeName} {dtoSymbol.Name}
     /// </summary>
     public Result ReLoadGen({contextName} context)
     {{
-        var dto = SelectGen(FirstQueryable(context)).FirstOrDefault();
+        var dto = FirstQueryable(context).SelectGen().FirstOrDefault();
         if (dto == null)
         {{
             return new Result(""内容不存在"", false);

@@ -17,10 +17,10 @@ public class ServiceGenerator : ISourceGenerator
     {
 #if DEBUG
 
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
+        //if (!Debugger.IsAttached)
+        //{
+        //    Debugger.Launch();
+        //}
 
 #endif
 

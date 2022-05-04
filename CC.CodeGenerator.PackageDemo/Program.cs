@@ -4,8 +4,8 @@ using CC.CodeGenerator.PackageDemo;
 
 var context=new DemoaContext();
 
-var peoples=PeopleEditDto
-    .SelectGen(context.People.Where(x => x.UserName.StartsWith("Latanya") )).ToList();
+var peoples=context.People.Where(x => x.UserName.StartsWith("Latanya")).SelectGen().ToList();
+
 
 var p = peoples.FirstOrDefault();
 p.City = "北京";
