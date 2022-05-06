@@ -71,8 +71,8 @@ public abstract class GeneratorBase : ISourceGenerator
 
     protected void DebuggerLaunch()
     {
-        if (!Debugger.IsAttached) Debugger.Launch();
-        Debug.Print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+        //if (!Debugger.IsAttached) Debugger.Launch();
+        //Debug.Print("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
     }
 
 }

@@ -240,7 +240,7 @@ public static class {dtoSymbol.Name}Extension
     /// <summary>
     /// EntitySelect
     /// </summary>
-    public static IQueryable<{dtoSymbol.Name}> SelectGen(this IQueryable<{entitySymbol.Name}> query)
+    public static IQueryable<{dtoSymbol.Name}> To{dtoSymbol.Name}s(this IQueryable<{entitySymbol.Name}> query)
     {{
         return query.Select(x => new {dtoSymbol.Name}()
         {{
@@ -300,7 +300,7 @@ public static class {dtoSymbol.Name}Extension
     /// <returns></returns>
     public static {dtoSymbol.Name}? LoadGen({contextName} context, {keyParameter})
     {{
-        return context.{entitySymbol.Name}.Where(x => {keyCompare}).SelectGen().FirstOrDefault();
+        return context.{entitySymbol.Name}.Where(x => {keyCompare}).To{dtoSymbol.Name}s().FirstOrDefault();
     }}";
     }
 
@@ -336,7 +336,7 @@ public static class {dtoSymbol.Name}Extension
     /// </summary>
     public Result ReLoadGen({contextName} context)
     {{
-        var dto = FirstQueryable(context).SelectGen().FirstOrDefault();
+        var dto = FirstQueryable(context).To{dtoSymbol.Name}s().FirstOrDefault();
         if (dto == null)
         {{
             return new Result(""内容不存在"", false);

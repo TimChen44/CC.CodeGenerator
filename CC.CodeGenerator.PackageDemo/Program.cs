@@ -4,7 +4,7 @@ using CC.CodeGenerator.PackageDemo;
 
 var context=new DemoaContext();
 
-var peoples=context.People.Where(x => x.UserName.StartsWith("Latanya")).SelectGen().ToList();
+var peoples=context.People.Where(x => x.UserName.StartsWith("Latanya")).ToPeopleEditDtoList().ToList();
 
 
 var p = peoples.FirstOrDefault();
