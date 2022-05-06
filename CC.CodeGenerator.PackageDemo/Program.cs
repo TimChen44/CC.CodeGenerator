@@ -4,10 +4,34 @@ using CC.CodeGenerator.PackageDemo;
 
 var context=new DemoaContext();
 
-var peoples=context.People.Where(x => x.UserName.StartsWith("Latanya")).ToPeopleEditDtoList().ToList();
+//初始新的Dto
+var peopleFirstDto = PeopleDto.NewGen();
 
+//快速载入Dto
+var peopleSecondDto = new PeopleDto() {City="ShangHai" };
 
-var p = peoples.FirstOrDefault();
-p.City = "北京";
-p.SaveGen(context);
-context.SaveChanges(); 
+//快速从Dto复制
+peopleFirstDto.CopyFormDto(peopleSecondDto);
+
+//EF快速Select
+var peopleEntityDtos = context.People.ToPeopleDtos();
+
+//快速载入Dto
+var peopleEntityDto = PeopleDto.LoadGen(context, Guid.NewGuid());
+
+//快速复制到实体
+var peopleEntity = context.People.FirstOrDefault();
+peopleEntityDto.CopyToEntity(peopleEntity);
+
+//Dto快速重新载入
+peopleEntityDto.ReLoadGen(context);
+
+//Dto快速保存
+peopleEntityDto.City = "北京";
+peopleEntityDto.SaveGen(context);
+
+//Dto快速删除
+peopleEntityDto.DeleteGen(context);
+
+//保存操作
+context.SaveChanges();

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CC.CodeGenerator.PackageDemo
 {
     [Dto(Context=nameof(DemoaContext),Entity =typeof(People))]
-    public partial record PeopleEditDto
+    public partial record PeopleDto
     {
         public Guid PeopleId { get; set; }
         public string UserName { get; set; }
