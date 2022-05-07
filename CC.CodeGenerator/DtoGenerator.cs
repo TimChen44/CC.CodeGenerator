@@ -9,6 +9,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 using System.Collections.Immutable;
+using System.Security.Claims;
 
 namespace CC.CodeGenerator;
 
@@ -19,12 +20,10 @@ public class DtoGenerator : ISourceGenerator
     public void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG
-
         if (!Debugger.IsAttached)
         {
             Debugger.Launch();
         }
-
 #endif
 
         //注册一个语法修改通知
@@ -39,7 +38,11 @@ public class DtoGenerator : ISourceGenerator
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
             if ((syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
-                || (syntaxNode is RecordDeclarationSyntax rds && rds.AttributeLists.Count > 0))//有特性的类都进行候选，将来可以筛选出只有需要的特性的类
+                || (syntaxNode is RecordDeclarationSyntax rds && rds.AttributeLists.Count > 0)
+
+
+
+                )//有特性的类都进行候选，将来可以筛选出只有需要的特性的类
             {
                 CandidateClasses.Add((TypeDeclarationSyntax)syntaxNode);
             }
@@ -59,33 +62,53 @@ public class DtoGenerator : ISourceGenerator
         //获得DtoAttribute类符号
         INamedTypeSymbol dtoAttSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.DtoAttribute");
 
+        //获得MappingAttribute类符号
+        INamedTypeSymbol mappingAttribute = compilation.GetTypeByMetadataName("CC.CodeGenerator.MappingAttribute");
+
         //创建Dto扩展
         foreach (TypeDeclarationSyntax dtoClass in receiver.CandidateClasses)
         {
-            CreateDto(context, compilation, dtoAttSymbol, dtoClass);
+            CreateCode(context, compilation, dtoClass, dtoAttSymbol, mappingAttribute);
         }
     }
 
-    public void CreateDto(GeneratorExecutionContext context, Compilation compilation, INamedTypeSymbol dtoAttSymbol, TypeDeclarationSyntax dtoClass)
+    public void CreateCode(GeneratorExecutionContext context, Compilation compilation,
+        TypeDeclarationSyntax dtoClass,
+        INamedTypeSymbol dtoAttSymbol, INamedTypeSymbol mappingAttribute)
     {
-        //获得dto类的类型符号
-        if (compilation.GetSemanticModel(dtoClass.SyntaxTree).GetDeclaredSymbol(dtoClass) is not ITypeSymbol dtoSymbol) return;
+        //获得类的类型符号,如果无法获得，就跳出
+        if (compilation.GetSemanticModel(dtoClass.SyntaxTree).GetDeclaredSymbol(dtoClass) is not ITypeSymbol classSymbol) return;
 
+        //类的特性
+        Lazy<ImmutableArray<AttributeData>> classAttributes = new Lazy<ImmutableArray<AttributeData>>(() => classSymbol.GetAttributes(), true);
+
+        //类中的属性，使用延迟初始化，如果没有对应的特性就免去此处的反射操作优化性能
+        Lazy<List<IPropertySymbol>> classProperties = new Lazy<List<IPropertySymbol>>(() =>
+             classSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
+                      .Where(x => x.Kind == SymbolKind.Property)//只保留属性
+                      .Cast<IPropertySymbol>()
+                      .Where(x => x.Type?.BaseType?.Name == "ValueType" || x.Type?.MetadataName == "String")//排除非值类型的属性
+                      .ToList(), true);
+
+        CreateDto(context, dtoAttSymbol, classSymbol, classAttributes, classProperties);
+
+        CreateMapping(context, mappingAttribute, classSymbol, classAttributes, classProperties);
+    }
+
+    #region Dto代码
+
+    public void CreateDto(GeneratorExecutionContext context, INamedTypeSymbol dtoAttSymbol,
+        ITypeSymbol classSymbol, Lazy<ImmutableArray<AttributeData>> classAttributes, Lazy<List<IPropertySymbol>> classProperties)
+    {
         //寻找是否有DtoAttribute
-        var dtoAttr = dtoSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass.Equals(dtoAttSymbol, SymbolEqualityComparer.Default));
+        var dtoAttr = classAttributes.Value.FirstOrDefault(x => x.AttributeClass.Equals(dtoAttSymbol, SymbolEqualityComparer.Default));
         if (dtoAttr == null) return;
-
-        //类的类型
-        var typeName = (dtoClass is ClassDeclarationSyntax) ? "class" : "record";
 
         #region Dto实体
 
         //获得dto成员列表
-        var dtoProperties = dtoSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
-            .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.IgnoreAttribute") == false)//排除忽略属性
-            .Where(x => x.Kind == SymbolKind.Property)//只保留属性
-            .Cast<IPropertySymbol>()
-            .Where(x => x.Type?.BaseType?.Name == "ValueType" || x.Type?.MetadataName == "String")//排除非值类型的属性
+        var dtoProperties = classProperties.Value
+            .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoIgnoreAttribute") == false)//排除忽略属性
             .ToList();
 
         #endregion
@@ -103,50 +126,53 @@ public class DtoGenerator : ISourceGenerator
 
         #endregion
 
+        //类的类型
+        var classTypeName = classSymbol.IsRecord ? "record" : "class";
+
         //组装代码
         string dtoCode = @$"
 using CC.Core;
-{ (string.IsNullOrWhiteSpace(contextName) ? "" : "using Microsoft.EntityFrameworkCore;")}
+{(string.IsNullOrWhiteSpace(contextName) ? "" : "using Microsoft.EntityFrameworkCore;")}
 
-namespace {dtoSymbol.ContainingNamespace.ToDisplayString()};
+namespace {classSymbol.ContainingNamespace.ToDisplayString()};
 
-public partial {typeName} {dtoSymbol.Name}
+public partial {classTypeName} {classSymbol.Name}
 {{
 
     #region 数据赋值
 
-{CopyFormDto(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
+{CopyFormDto(classSymbol, dtoProperties, entitySymbol, entityProperties)}
 
-{CopyToEntity(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
+{CopyToEntity(classSymbol, dtoProperties, entitySymbol, entityProperties)}
 
-{EntitySelect(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
+{EntitySelect(classSymbol, dtoProperties, entitySymbol, entityProperties)}
 
     #endregion
 
     #region 数据库操作
 
-{New(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{New(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Load(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{Load(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{FirstQueryable(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{FirstQueryable(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{ReLoad(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{ReLoad(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Save(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{Save(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Delete(dtoSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{Delete(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
     #endregion 
 }}
 
-{EntitySelectExtension(dtoSymbol, dtoProperties, entitySymbol, entityProperties)}
+{EntitySelectExtension(classSymbol, dtoProperties, entitySymbol, entityProperties)}
 
 ";
 
-        context.AddSource($@"{dtoSymbol.ContainingNamespace.ToDisplayString()}.{dtoSymbol.Name}.cs", SourceText.From(dtoCode, Encoding.UTF8));
-
+        context.AddSource($@"{classSymbol.ContainingNamespace.ToDisplayString()}.{classSymbol.Name}.dto.g.cs", SourceText.From(dtoCode, Encoding.UTF8));
     }
+
     #region 数据赋值
 
     // 从Dto赋值值到自己
@@ -221,8 +247,7 @@ public partial {typeName} {dtoSymbol.Name}
 
     }
 
-
-   private string EntitySelectExtension(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    private string EntitySelectExtension(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
     {
         if (entitySymbol == null) return null;
 
@@ -251,11 +276,9 @@ public static class {dtoSymbol.Name}Extension
 
     }
 
-
     #endregion
 
     #region 数据库操作
-
     private string New(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<IPropertySymbol> keyIds)
     {
         if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
@@ -390,5 +413,97 @@ public static class {dtoSymbol.Name}Extension
     }}";
     }
 
-    #endregion 
+    #endregion
+
+    #endregion
+
+
+    #region Mapping代码
+    public void CreateMapping(GeneratorExecutionContext context, INamedTypeSymbol mappingAttribute,
+         ITypeSymbol classSymbol, Lazy<ImmutableArray<AttributeData>> classAttributes, Lazy<List<IPropertySymbol>> classProperties)
+    {
+        //寻找是否有DtoAttribute
+        var mappingAttr = classAttributes.Value.FirstOrDefault(x => x.AttributeClass.Equals(mappingAttribute, SymbolEqualityComparer.Default));
+        if (mappingAttr == null) return;
+
+        StringBuilder mappingBuilder = new StringBuilder();
+
+        //获得dto成员列表
+        var mappingProperties = classProperties.Value
+            .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.MappingIgnoreAttribute") == false)//排除忽略属性
+            .ToList();
+
+        var code = new StringBuilder();
+
+        //获得目标类型
+        List<ITypeSymbol> targetSymbols = mappingAttr.ConstructorArguments.FirstOrDefault().Values.Select(x => x.Value as ITypeSymbol).Distinct().ToList();
+
+        foreach (var targetSymbol in targetSymbols)
+        {
+            //获得目标属性
+            var targetProperties = targetSymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList() ?? new List<IPropertySymbol>();
+
+            code.AppendLine(MappingCopy(classSymbol, mappingProperties, targetSymbol, targetProperties));
+        }
+
+        //类的类型
+        var classTypeName = classSymbol.IsRecord ? "record" : "class";
+
+        //组装代码
+        string dtoCode = @$"
+using CC.Core;
+
+namespace {classSymbol.ContainingNamespace.ToDisplayString()};
+
+public partial {classTypeName} {classSymbol.Name}
+{{
+
+{code.ToString()}
+
+}}
+";
+
+        context.AddSource($@"{classSymbol.ContainingNamespace.ToDisplayString()}.{classSymbol.Name}.mapping.g.cs", SourceText.From(dtoCode, Encoding.UTF8));
+    }
+
+    // 从Dto赋值值到自己
+    private string MappingCopy(ITypeSymbol classSymbol, IEnumerable<ISymbol> mappingProperties, ITypeSymbol targetSymbol, IEnumerable<ISymbol> targetProperties)
+    {
+        if (targetSymbol == null) return null;
+
+        var codeCopyTo = new StringBuilder();
+
+        var codeCopyFrom = new StringBuilder();
+        foreach (var mappingProp in mappingProperties)
+        {
+            var targetProp = targetProperties.FirstOrDefault(x => x.Name == mappingProp.Name);
+            if (targetProp == null) continue;
+            codeCopyTo.AppendLine($"        target.{targetProp.Name} = this.{mappingProp.Name};");
+            codeCopyFrom.AppendLine($"        this.{mappingProp.Name} = source.{targetProp.Name};");
+        }
+
+        return @$"
+    /// <summary>
+    /// 将自己赋值到目标
+    /// </summary>
+    public {classSymbol.Name} CopyTo({targetSymbol.ContainingNamespace}.{targetSymbol.Name} target)
+    {{
+{codeCopyTo.ToString()}
+        return this;
+    }}
+
+    /// <summary>
+    /// 从源赋值到自己
+    /// </summary>
+    public {classSymbol.Name} CopyFrom({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
+    {{
+{codeCopyFrom.ToString()}
+        return this;
+    }}";
+
+
+
+    }
+
+    #endregion
 }

@@ -21,7 +21,7 @@ public class DtoAttribute : Attribute
 
 //标记属性是否需要忽略
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-public class IgnoreAttribute : Attribute
+public class DtoIgnoreAttribute : Attribute
 {
 
 }

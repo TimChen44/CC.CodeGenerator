@@ -1,17 +1,37 @@
 ﻿global using CC.CodeGenerator;
 global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
+using System.Text;
 
-var context=new DemoaContext();
+
+#region MappingGenerator
 
 //初始新的Dto
-var peopleFirstDto = PeopleDto.NewGen();
+var people1Map = new People1Map() { PeopleId=Guid.NewGuid(),UserName="Tim" };
+var people2Map = new People2Map();
+var people3Map = new People3Map() { City="ShangHai"};
+
+//复制到对象
+people1Map.CopyTo(people2Map);
+
+//从对象复制来
+people1Map.CopyFrom(people3Map);
+
+#endregion
+
+
+#region DtoGenerator
+
+var context = new DemoaContext();
+
+//初始新的Dto
+var firstDto = PeopleDto.NewGen();
 
 //快速载入Dto
-var peopleSecondDto = new PeopleDto() {City="ShangHai" };
+var secondDto = new PeopleDto() {City="ShangHai"  };
 
 //快速从Dto复制
-peopleFirstDto.CopyFormDto(peopleSecondDto);
+firstDto.CopyFormDto(secondDto);
 
 //EF快速Select
 var peopleEntityDtos = context.People.ToPeopleDtos();
@@ -33,5 +53,7 @@ peopleEntityDto.SaveGen(context);
 //Dto快速删除
 peopleEntityDto.DeleteGen(context);
 
-//保存操作
+//最后保存操作
 context.SaveChanges();
+
+#endregion
