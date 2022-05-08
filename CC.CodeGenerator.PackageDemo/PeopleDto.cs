@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CC.CodeGenerator.PackageDemo
 {
-    [Dto(Context=nameof(DemoaContext),Entity =typeof(People))]
+    [Dto(Context = nameof(DemoaContext), Entity = typeof(People))]
     public partial record PeopleDto
     {
         public Guid PeopleId { get; set; }
@@ -17,8 +17,5 @@ namespace CC.CodeGenerator.PackageDemo
 
         [DtoIgnore]
         public string Disply => $"{UserName}";
-
-        public string City1 { get; set; }
-
     }
 }

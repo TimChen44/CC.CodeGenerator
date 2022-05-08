@@ -24,26 +24,26 @@ people1Map.CopyFrom(people3Map);
 
 var context = new DemoaContext();
 
+//创建Dto
+var secondDto = new PeopleDto() { City = "ShangHai" };
+
 //初始新的Dto
 var firstDto = PeopleDto.NewGen();
-
-//快速载入Dto
-var secondDto = new PeopleDto() {City="ShangHai"  };
 
 //快速从Dto复制
 firstDto.CopyFormDto(secondDto);
 
 //EF快速Select
-var peopleEntityDtos = context.People.ToPeopleDtos();
+var peopleEntityDtos = context.People.Where(x=>x.City == "ShangHai").ToPeopleDtos();
 
 //快速载入Dto
-var peopleEntityDto = PeopleDto.LoadGen(context, Guid.NewGuid());
+var peopleEntityDto = PeopleDto.LoadGen(context, new Guid(""));
 
-//快速复制到实体
+//Dto复制到实体
 var peopleEntity = context.People.FirstOrDefault();
 peopleEntityDto.CopyToEntity(peopleEntity);
 
-//Dto快速重新载入
+//Dto重新载入
 peopleEntityDto.ReLoadGen(context);
 
 //Dto快速保存

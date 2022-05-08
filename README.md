@@ -1,6 +1,15 @@
 # CC.CodeGenerator
 利用.Net的Source Generator功能，生成开发过程中哪些无聊的代码。
 
+### 优势
+- 代码实时生成，无需额外操作，立即生效
+- 开发过程中生成的代码，执行性能比运行时反射有更高的效率
+
+### 效果演示
+
+![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
+
+
 # 使用方法
 
 ## 1. 安装
@@ -8,9 +17,6 @@
 ### 安装代码生成包以及支持包
 ```powershell
 Install-Package CC.CodeGenerator
-```
-
-```powershell
 Install-Package CC.NetCore
 ```
 
@@ -23,58 +29,56 @@ global using CC.CodeGenerator;
 
 ## 2. 对象Mapping
 
-### 创建Class或record文件，并加入Dto特性
+Mapping
+> 启用对象映射，可指定多个映射对象
 
-Ignore:忽略不需要的属性
+MappingIgnore
+> 忽略不需要的属性
+
 ```csharp
-[Dto()]
-public partial class PeopleEditDto
+[Mapping(typeof(People2Map), typeof(People3Map))]
+public partial class People1Map
 {
     public Guid PeopleId { get; set; }
-
     public string UserName { get; set; }
+    public string City { get; set; }
+    [MappingIgnore]
+    public string Disply => $"{UserName}";
+}
 
+public class People2Map
+{
+    public Guid PeopleId { get; set; }
+    public string UserName { get; set; }
+}
+
+public class People3Map
+{
     public string City { get; set; }
 
-    [Ignore]
-    public string Display => $"{UserName} {City}";
 }
 ```
 
-### 效果演示
-
-![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
-
-
-## 3. 支持EF简化单表操作
-
-### Program.cs中加入EF实体引用
-```csharp
-global using CC.CodeGenerator.Demo.Entity;
-```
-
-### 特性中增加参数
-Context:上下文对象
-
-Entity:映射的EF实体
-```csharp
-[Dto(Context =nameof(DemoaContext),Entity =typeof(People))]
-public partial class PeopleEditDto
-```
-
-### 查询和保存示例
+进行对象之间的赋值
 
 ```csharp
-var context=new DemoaContext();
-var peoples= PeopleEditDto.SelectGen(context.People.Where(x => x.UserName.StartsWith("Latanya"))).ToList();
+//初始新的Dto
+var people1Map = new People1Map() { PeopleId=Guid.NewGuid(),UserName="Tim" };
+var people2Map = new People2Map();
+var people3Map = new People3Map() { City="ShangHai"};
 
-var me= peoples.FirstOrDefault();
-me.City = "上海";
-me.SaveGen(context);
-context.SaveChanges();
+//复制到对象
+people1Map.CopyTo(people2Map);
+
+//从对象复制来
+people1Map.CopyFrom(people3Map);
 ```
 
 ## 3. 服务注册代码自动创建
+
+Service
+> 自动创建服务注册代码，让Program更加清洁
+> - LifeCycle:自定义生命周期，默认Scoped
 
 ### Program.cs中标记注册位置
 ```csharp
@@ -84,13 +88,75 @@ CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
 ```
 
 ### 服务中增加ServiceAttribute
-LifeCycle:自定义生命周期，默认Scoped
+
 ```csharp
 [Service(LifeCycle = ELifeCycle.Singleton)]
 public class WeatherForecastService
 ```
 
-## 4. 自动实现INotifyPropertyChanged接口
+## 4. 增强数据交换对象及简化EF
+
+Dto
+> 增强实体特性，提供对象赋值，默认增删改查代码
+> - Context:上下文对象
+> - Entity:映射的EF实体
+
+Ignore
+> 忽略不需要的属性
+
+### 示例
+
+```csharp
+[Dto(Context=nameof(DemoaContext),Entity =typeof(People))]
+public partial record PeopleDto
+{
+    public Guid PeopleId { get; set; }
+    public string UserName { get; set; }
+    public string City { get; set; }
+    [DtoIgnore]
+    public string Disply => $"{UserName}";
+}
+```
+
+### 示例
+
+```csharp
+var context = new DemoaContext();
+
+//创建Dto
+var secondDto = new PeopleDto() { City = "ShangHai" };
+
+//初始新的Dto
+var firstDto = PeopleDto.NewGen();
+
+//快速从Dto复制
+firstDto.CopyFormDto(secondDto);
+
+//EF快速Select
+var peopleEntityDtos = context.People.Where(x=>x.City == "ShangHai").ToPeopleDtos();
+
+//快速载入Dto
+var peopleEntityDto = PeopleDto.LoadGen(context, new Guid(""));
+
+//Dto复制到实体
+var peopleEntity = context.People.FirstOrDefault();
+peopleEntityDto.CopyToEntity(peopleEntity);
+
+//Dto重新载入
+peopleEntityDto.ReLoadGen(context);
+
+//Dto快速保存
+peopleEntityDto.City = "北京";
+peopleEntityDto.SaveGen(context);
+
+//Dto快速删除
+peopleEntityDto.DeleteGen(context);
+
+//最后保存操作
+context.SaveChanges();
+```
+
+## 5. 自动实现INotifyPropertyChanged接口
 
 ```csharp
 [AddNotifyPropertyChanged("Id", typeof(long), XmlSummary = "从类上创建属性")]
