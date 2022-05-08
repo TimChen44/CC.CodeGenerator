@@ -3,12 +3,15 @@
 
 ### 优势
 - 代码实时生成，无需额外操作，立即生效
-- 开发过程中生成的代码，执行性能比运行时反射有更高的效率
+- 开发过程中生成的代码，执行性能比运行时反射更有效率
 
 ### 效果演示
 
 ![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
 
+### 视频介绍
+
+https://www.bilibili.com/video/BV1a3411Y7xb?share_source=copy_web
 
 # 使用方法
 
