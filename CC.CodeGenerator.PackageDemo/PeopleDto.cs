@@ -7,15 +7,14 @@ using System.Threading.Tasks;
 
 namespace CC.CodeGenerator.PackageDemo
 {
-    [Dto(Context = nameof(DemoaContext), Entity = typeof(People))]
+    [Dto(Context = nameof(DemoContext), Entity = typeof(People))]
     public partial record PeopleDto
     {
         public Guid PeopleId { get; set; }
-        public string UserName { get; set; }
+        public string Name { get; set; }
 
-        public string City { get; set; }
+        public int? Age { get; set; }
 
-        [DtoIgnore]
-        public string Disply => $"{UserName}";
+        public string Disply => $"{Name}";
     }
 }

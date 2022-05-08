@@ -8,45 +8,42 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CC.CodeGenerator.Demo.Entity
 {
-    [Index(nameof(Age), Name = "Age")]
     public partial class People
     {
+        public People()
+        {
+            Skill = new HashSet<Skill>();
+        }
+
         /// <summary>
-        /// 12
+        /// 人员
         /// </summary>
         [Key]
         public Guid PeopleId { get; set; }
         /// <summary>
-        /// 34
+        /// 姓名
         /// </summary>
-        [Required]
-        [StringLength(50)]
-        public string UserName { get; set; }
-        /// <summary>
-        /// 56
-        /// </summary>
-        [Required]
         [StringLength(50)]
         public string Name { get; set; }
         /// <summary>
-        /// 78
+        /// 性别
         /// </summary>
-        [StringLength(5)]
+        [StringLength(50)]
         public string Sex { get; set; }
         /// <summary>
-        /// 90
+        /// 年龄
         /// </summary>
         public int? Age { get; set; }
+        /// <summary>
+        /// 城市编号
+        /// </summary>
         [StringLength(50)]
-        public string Country { get; set; }
-        [StringLength(50)]
-        public string City { get; set; }
-        [StringLength(4000)]
-        public string Address { get; set; }
-        [StringLength(50)]
-        public string Email { get; set; }
-        [StringLength(50)]
-        public string Phone { get; set; }
-        public string Remark { get; set; }
+        public string CityNo { get; set; }
+
+        [ForeignKey("CityNo")]
+        [InverseProperty("People")]
+        public virtual City CityNoNavigation { get; set; }
+        [InverseProperty("People")]
+        public virtual ICollection<Skill> Skill { get; set; }
     }
 }

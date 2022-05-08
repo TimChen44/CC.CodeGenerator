@@ -7,9 +7,9 @@ using System.Text;
 #region MappingGenerator
 
 //初始新的Dto
-var people1Map = new People1Map() { PeopleId=Guid.NewGuid(),UserName="Tim" };
+var people1Map = new People1Map() { PeopleId = Guid.NewGuid(), Name = "Tim" };
 var people2Map = new People2Map();
-var people3Map = new People3Map() { City="ShangHai"};
+var people3Map = new People3Map() { CityTitle = "ShangHai" };
 
 //复制到对象
 people1Map.CopyTo(people2Map);
@@ -17,15 +17,18 @@ people1Map.CopyTo(people2Map);
 //从对象复制来
 people1Map.CopyFrom(people3Map);
 
+//从别的对象初始化
+var people4Map = new People1Map(people2Map);
+
 #endregion
 
 
 #region DtoGenerator
 
-var context = new DemoaContext();
+var context = new DemoContext();
 
 //创建Dto
-var secondDto = new PeopleDto() { City = "ShangHai" };
+var secondDto = new PeopleDto() { Age = 20 };
 
 //初始新的Dto
 var firstDto = PeopleDto.NewGen();
@@ -34,10 +37,10 @@ var firstDto = PeopleDto.NewGen();
 firstDto.CopyFormDto(secondDto);
 
 //EF快速Select
-var peopleEntityDtos = context.People.Where(x=>x.City == "ShangHai").ToPeopleDtos();
+var peopleEntityDtos = context.People.Where(x => x.Age == 20).ToPeopleDtos().ToList();
 
 //快速载入Dto
-var peopleEntityDto = PeopleDto.LoadGen(context, new Guid(""));
+var peopleEntityDto = PeopleDto.LoadGen(context, new Guid("25fcf1e5-a47c-432a-b2c6-25a2a09a5e01"));
 
 //Dto复制到实体
 var peopleEntity = context.People.FirstOrDefault();
@@ -47,7 +50,7 @@ peopleEntityDto.CopyToEntity(peopleEntity);
 peopleEntityDto.ReLoadGen(context);
 
 //Dto快速保存
-peopleEntityDto.City = "北京";
+peopleEntityDto.Age = 10;
 peopleEntityDto.SaveGen(context);
 
 //Dto快速删除

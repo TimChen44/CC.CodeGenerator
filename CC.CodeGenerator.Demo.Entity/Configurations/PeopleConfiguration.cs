@@ -14,15 +14,20 @@ namespace CC.CodeGenerator.Demo.Entity.Configurations
         {
             entity.Property(e => e.PeopleId)
                 .ValueGeneratedNever()
-                .HasComment("12");
+                .HasComment("人员");
 
-            entity.Property(e => e.Age).HasComment("90");
+            entity.Property(e => e.Age).HasComment("年龄");
 
-            entity.Property(e => e.Name).HasComment("56");
+            entity.Property(e => e.CityNo).HasComment("城市编号");
 
-            entity.Property(e => e.Sex).HasComment("78");
+            entity.Property(e => e.Name).HasComment("姓名");
 
-            entity.Property(e => e.UserName).HasComment("34");
+            entity.Property(e => e.Sex).HasComment("性别");
+
+            entity.HasOne(d => d.CityNoNavigation)
+                .WithMany(p => p.People)
+                .HasForeignKey(d => d.CityNo)
+                .HasConstraintName("FK_People_City");
 
             OnConfigurePartial(entity);
         }

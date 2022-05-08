@@ -9,24 +9,28 @@ namespace CC.CodeGenerator.PackageDemo
     [Mapping(typeof(People2Map), typeof(People3Map))]
     public partial class People1Map
     {
+        public People1Map() { }
+
         public Guid PeopleId { get; set; }
-        public string UserName { get; set; }
+        public string Name { get; set; }
 
-        public string City { get; set; }
 
-        [MappingIgnore]
-        public string Disply => $"{UserName}";
+        public string CityTitle { get; set; }
+
+        public string Disply => $"{Name}";
+
     }
 
     public class People2Map
     {
         public Guid PeopleId { get; set; }
-        public string UserName { get; set; }
+        public string Name { get; set; }
     }
 
     public class People3Map
     {
-        public string City { get; set; }
+        public string CityTitle { get; set; }
 
-    }
+    } 
 }
+

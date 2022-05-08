@@ -8,33 +8,35 @@ using System.Collections.Generic;
 
 namespace CC.CodeGenerator.Demo.Entity
 {
-    public partial class DemoaContext : DbContext
+    public partial class DemoContext : DbContext
     {
-        public DemoaContext()
+        public DemoContext()
         {
         }
 
-        public DemoaContext(DbContextOptions<DemoaContext> options)
+        public DemoContext(DbContextOptions<DemoContext> options)
             : base(options)
         {
         }
 
+        public virtual DbSet<City> City { get; set; }
         public virtual DbSet<People> People { get; set; }
-        public virtual DbSet<SCDemo> SCDemo { get; set; }
+        public virtual DbSet<Skill> Skill { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseSqlServer("Data Source=(LocalDB)\\MSSQLLocalDB;Initial Catalog=DemoA;Integrated Security=True");
+                optionsBuilder.UseSqlServer("Data Source=(LocalDB)\\tim;Initial Catalog=CodeGeneratorDemo;Integrated Security=True");
             }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.ApplyConfiguration(new Configurations.CityConfiguration());
             modelBuilder.ApplyConfiguration(new Configurations.PeopleConfiguration());
-            modelBuilder.ApplyConfiguration(new Configurations.SCDemoConfiguration());
+            modelBuilder.ApplyConfiguration(new Configurations.SkillConfiguration());
 
             OnModelCreatingPartial(modelBuilder);
         }

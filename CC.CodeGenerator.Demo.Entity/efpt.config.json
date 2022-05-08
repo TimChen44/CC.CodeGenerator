@@ -1,6 +1,6 @@
 ﻿{
    "CodeGenerationMode": 2,
-   "ContextClassName": "DemoaContext",
+   "ContextClassName": "DemoContext",
    "ContextNamespace": null,
    "DefaultDacpacSchema": null,
    "FilterSchemas": false,
@@ -14,20 +14,25 @@
    "SelectedToBeGenerated": 0,
    "Tables": [
       {
+         "Name": "[dbo].[City]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[People]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[SCDemo]",
+         "Name": "[dbo].[Skill]",
          "ObjectType": 0
       }
    ],
-   "UiHint": "(LocalDB)\\MSSQLLocalDB.DemoA",
+   "UiHint": "(LocalDB)\\tim.CodeGeneratorDemo",
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
    "UseDbContextSplitting": true,
    "UseFluentApiOnly": false,
    "UseHandleBars": false,
+   "UseHierarchyId": false,
    "UseInflector": false,
    "UseLegacyPluralizer": false,
    "UseManyToManyEntity": false,

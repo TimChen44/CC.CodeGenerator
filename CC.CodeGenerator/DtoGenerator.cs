@@ -87,7 +87,7 @@ public class DtoGenerator : ISourceGenerator
              classSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
                       .Where(x => x.Kind == SymbolKind.Property)//只保留属性
                       .Cast<IPropertySymbol>()
-                      .Where(x => x.Type?.BaseType?.Name == "ValueType" || x.Type?.MetadataName == "String")//排除非值类型的属性
+                      .Where(x => x.Type.IsValueType == true || x.Type?.MetadataName == "String")//排除非值类型的属性
                       .ToList(), true);
 
         CreateDto(context, dtoAttSymbol, classSymbol, classAttributes, classProperties);
@@ -176,14 +176,9 @@ public partial {classTypeName} {classSymbol.Name}
     #region 数据赋值
 
     // 从Dto赋值值到自己
-    private string CopyFormDto(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    private string CopyFormDto(ITypeSymbol dtoSymbol, IEnumerable<IPropertySymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
     {
-        var code = new StringBuilder();
-        foreach (var prop in dtoProperties)
-        {
-            code.AppendLine($"        this.{prop.Name} = dto.{prop.Name};");
-        }
-
+        var code = AssignCode("this", dtoProperties, "dto", dtoProperties, ";");
         return @$"
     /// <summary>
     /// 从Dto赋值值到自己
@@ -196,17 +191,10 @@ public partial {classTypeName} {classSymbol.Name}
     }
 
     // 自己的值复制到实体
-    private string CopyToEntity(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    private string CopyToEntity(ITypeSymbol dtoSymbol, IEnumerable<IPropertySymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<IPropertySymbol> entityProperties)
     {
         if (entitySymbol == null) return null;
-
-        var code = new StringBuilder();
-        foreach (var entityProp in entityProperties)
-        {
-            var dtoProp = dtoProperties.FirstOrDefault(x => x.Name == entityProp.Name);
-            if (dtoProp == null) continue;
-            code.AppendLine($"        entity.{entityProp.Name} = this.{dtoProp.Name};");
-        }
+        var code = AssignCode("entity", entityProperties, "this", dtoProperties, ";");
 
         return @$"    
     /// <summary>
@@ -220,17 +208,11 @@ public partial {classTypeName} {classSymbol.Name}
     }
 
     //EntitySelect
-    private string EntitySelect(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    private string EntitySelect(ITypeSymbol dtoSymbol, IEnumerable<IPropertySymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<IPropertySymbol> entityProperties)
     {
         if (entitySymbol == null) return null;
 
-        var code = new StringBuilder();
-        foreach (var entityProp in entityProperties)
-        {
-            var dtoProp = dtoProperties.FirstOrDefault(x => x.Name == entityProp.Name);
-            if (dtoProp == null) continue;
-            code.AppendLine($"            {dtoProp.Name} = x.{entityProp.Name},");
-        }
+        var code = AssignCode("", dtoProperties, "x", entityProperties, ",");
 
         return @$"
     /// <summary>
@@ -247,17 +229,11 @@ public partial {classTypeName} {classSymbol.Name}
 
     }
 
-    private string EntitySelectExtension(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties)
+    private string EntitySelectExtension(ITypeSymbol dtoSymbol, IEnumerable<IPropertySymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<IPropertySymbol> entityProperties)
     {
         if (entitySymbol == null) return null;
 
-        var code = new StringBuilder();
-        foreach (var entityProp in entityProperties)
-        {
-            var dtoProp = dtoProperties.FirstOrDefault(x => x.Name == entityProp.Name);
-            if (dtoProp == null) continue;
-            code.AppendLine($"            {dtoProp.Name} = x.{entityProp.Name},");
-        }
+        var code = AssignCode("", dtoProperties, "x", entityProperties, ",");
 
         return @$"
 public static class {dtoSymbol.Name}Extension
@@ -417,8 +393,8 @@ public static class {dtoSymbol.Name}Extension
 
     #endregion
 
-
     #region Mapping代码
+
     public void CreateMapping(GeneratorExecutionContext context, INamedTypeSymbol mappingAttribute,
          ITypeSymbol classSymbol, Lazy<ImmutableArray<AttributeData>> classAttributes, Lazy<List<IPropertySymbol>> classProperties)
     {
@@ -446,6 +422,9 @@ public static class {dtoSymbol.Name}Extension
             code.AppendLine(MappingCopy(classSymbol, mappingProperties, targetSymbol, targetProperties));
         }
 
+        //检查是否有默认构造，如果有就不用创建默认，否则创建默认构造
+
+
         //类的类型
         var classTypeName = classSymbol.IsRecord ? "record" : "class";
 
@@ -458,7 +437,7 @@ namespace {classSymbol.ContainingNamespace.ToDisplayString()};
 public partial {classTypeName} {classSymbol.Name}
 {{
 
-{code.ToString()}
+{code}
 
 }}
 ";
@@ -466,29 +445,30 @@ public partial {classTypeName} {classSymbol.Name}
         context.AddSource($@"{classSymbol.ContainingNamespace.ToDisplayString()}.{classSymbol.Name}.mapping.g.cs", SourceText.From(dtoCode, Encoding.UTF8));
     }
 
-    // 从Dto赋值值到自己
-    private string MappingCopy(ITypeSymbol classSymbol, IEnumerable<ISymbol> mappingProperties, ITypeSymbol targetSymbol, IEnumerable<ISymbol> targetProperties)
+    // 映射复制
+    private string MappingCopy(ITypeSymbol classSymbol, IEnumerable<IPropertySymbol> mappingProperties, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
     {
         if (targetSymbol == null) return null;
 
-        var codeCopyTo = new StringBuilder();
-
-        var codeCopyFrom = new StringBuilder();
-        foreach (var mappingProp in mappingProperties)
-        {
-            var targetProp = targetProperties.FirstOrDefault(x => x.Name == mappingProp.Name);
-            if (targetProp == null) continue;
-            codeCopyTo.AppendLine($"        target.{targetProp.Name} = this.{mappingProp.Name};");
-            codeCopyFrom.AppendLine($"        this.{mappingProp.Name} = source.{targetProp.Name};");
-        }
+        var codeCopyTo =  AssignCode("target", targetProperties, "this", mappingProperties, ";");
+        var codeCopyFrom = AssignCode("this", mappingProperties, "source", targetProperties, ";");
 
         return @$"
+
+    /// <summary>
+    /// 基于源赋值初始化
+    /// </summary>
+    public People1Map({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
+    {{
+        CopyFrom(source);
+    }}
+
     /// <summary>
     /// 将自己赋值到目标
     /// </summary>
     public {classSymbol.Name} CopyTo({targetSymbol.ContainingNamespace}.{targetSymbol.Name} target)
     {{
-{codeCopyTo.ToString()}
+{codeCopyTo}
         return this;
     }}
 
@@ -497,12 +477,34 @@ public partial {classTypeName} {classSymbol.Name}
     /// </summary>
     public {classSymbol.Name} CopyFrom({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
     {{
-{codeCopyFrom.ToString()}
+{codeCopyFrom}
         return this;
     }}";
 
 
 
+    }
+
+    #endregion
+
+
+    #region 公用方法
+
+    /// <summary>
+    /// 赋值代码
+    /// </summary>
+    public StringBuilder AssignCode(string leftName, IEnumerable<IPropertySymbol> leftProps,
+        string rightName, IEnumerable<IPropertySymbol> rightProps, string separate)
+    {
+        var code = new StringBuilder();
+        foreach (var leftProp in leftProps)
+        {
+            if (leftProp.IsReadOnly) continue;
+            var rightProp = rightProps.FirstOrDefault(x => x.Name == leftProp.Name);
+            if (rightProp == null) continue;
+            code.AppendLine($"        {(string.IsNullOrWhiteSpace(leftName) ? "" : $"{leftName}.")}{leftProp.Name} = {rightName}.{rightProp.Name}{separate}");
+        }
+        return code;
     }
 
     #endregion
