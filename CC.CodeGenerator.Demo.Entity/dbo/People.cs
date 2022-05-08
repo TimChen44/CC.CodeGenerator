@@ -38,11 +38,11 @@ namespace CC.CodeGenerator.Demo.Entity
         /// 城市编号
         /// </summary>
         [StringLength(50)]
-        public string CityNo { get; set; }
+        public string CityId { get; set; }
 
-        [ForeignKey("CityNo")]
+        [ForeignKey("CityId")]
         [InverseProperty("People")]
-        public virtual City CityNoNavigation { get; set; }
+        public virtual City City { get; set; }
         [InverseProperty("People")]
         public virtual ICollection<Skill> Skill { get; set; }
     }

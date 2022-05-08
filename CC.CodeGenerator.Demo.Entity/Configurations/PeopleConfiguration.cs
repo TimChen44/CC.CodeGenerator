@@ -18,16 +18,16 @@ namespace CC.CodeGenerator.Demo.Entity.Configurations
 
             entity.Property(e => e.Age).HasComment("年龄");
 
-            entity.Property(e => e.CityNo).HasComment("城市编号");
+            entity.Property(e => e.CityId).HasComment("城市编号");
 
             entity.Property(e => e.Name).HasComment("姓名");
 
             entity.Property(e => e.Sex).HasComment("性别");
 
-            entity.HasOne(d => d.CityNoNavigation)
+            entity.HasOne(d => d.City)
                 .WithMany(p => p.People)
-                .HasForeignKey(d => d.CityNo)
-                .HasConstraintName("FK_People_City");
+                .HasForeignKey(d => d.CityId)
+                .HasConstraintName("FK_People_City1");
 
             OnConfigurePartial(entity);
         }

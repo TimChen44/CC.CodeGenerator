@@ -20,14 +20,14 @@ namespace CC.CodeGenerator.Demo.Entity
         /// </summary>
         [Key]
         [StringLength(50)]
-        public string CityNo { get; set; }
+        public string CityId { get; set; }
         /// <summary>
         /// 名称
         /// </summary>
         [StringLength(50)]
         public string CityTitle { get; set; }
 
-        [InverseProperty("CityNoNavigation")]
+        [InverseProperty("City")]
         public virtual ICollection<People> People { get; set; }
     }
 }

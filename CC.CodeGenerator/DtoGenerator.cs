@@ -458,7 +458,7 @@ public partial {classTypeName} {classSymbol.Name}
     /// <summary>
     /// 基于源赋值初始化
     /// </summary>
-    public People1Map({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
+    public {classSymbol.Name}({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
     {{
         CopyFrom(source);
     }}

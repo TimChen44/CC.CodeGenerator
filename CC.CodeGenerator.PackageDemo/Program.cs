@@ -1,6 +1,7 @@
 ﻿global using CC.CodeGenerator;
 global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 
@@ -22,10 +23,31 @@ var people4Map = new People1Map(people2Map);
 
 #endregion
 
+var context = new DemoContext();
+
+#region EFSelect
+
+//简化赋值
+var PeopleViewDtos1 = context.People
+    .Select(x => new PeopleViewDto(x)
+        {
+            CityTitle = x.City.CityTitle,
+            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+        })
+    .ToList();
+
+//通过级联CopyFrom函数可以从多个实体获得数据
+var PeopleViewDtos2 = context.People
+    .Select(x => new PeopleViewDto(x)
+        {
+            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+        }
+    .CopyFrom(x.City))
+    .ToList();
+
+#endregion
 
 #region DtoGenerator
-
-var context = new DemoContext();
 
 //创建Dto
 var secondDto = new PeopleDto() { Age = 20 };
@@ -57,6 +79,8 @@ peopleEntityDto.SaveGen(context);
 peopleEntityDto.DeleteGen(context);
 
 //最后保存操作
-context.SaveChanges();
+//context.SaveChanges();
 
 #endregion
+
+Console.Read();

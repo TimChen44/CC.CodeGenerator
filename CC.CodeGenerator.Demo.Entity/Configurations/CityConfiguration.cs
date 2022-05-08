@@ -12,7 +12,7 @@ namespace CC.CodeGenerator.Demo.Entity.Configurations
     {
         public void Configure(EntityTypeBuilder<City> entity)
         {
-            entity.Property(e => e.CityNo).HasComment("城市");
+            entity.Property(e => e.CityId).HasComment("城市");
 
             entity.Property(e => e.CityTitle).HasComment("名称");
 

@@ -72,9 +72,57 @@ people1Map.CopyTo(people2Map);
 
 //从对象复制来
 people1Map.CopyFrom(people3Map);
+
+//从别的对象初始化
+var people4Map = new People1Map(people2Map);
+
+
+```
+## 3. EF检索中Mapping
+
+简化在EF的Select中的无意义赋值代码，并能从多个对象汇获取数据
+
+### 返回的对象增加Mapping特性
+```csharp
+[Mapping(typeof(People), typeof(City))]
+public partial class PeopleViewDto
+{
+    public Guid PeopleId { get; set; }
+    public string Name { get; set; }
+    public string CityTitle { get; set; }
+    public List<SkillViewDto> SkillViews { get; set; }
+}
+
+[Mapping(typeof(Skill))]
+public partial class SkillViewDto
+{
+    public Guid SkillId { get; set; }
+    public Guid PeopleId { get; set; }
+}
 ```
 
-## 3. 服务注册代码自动创建
+### 使用示例
+```csharp
+//简化赋值
+var PeopleViewDtos1 = context.People
+    .Select(x => new PeopleViewDto(x)
+        {
+            CityTitle = x.City.CityTitle,
+            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+        })
+    .ToList();
+
+//通过级联CopyFrom函数可以从多个实体获得数据
+var PeopleViewDtos2 = context.People
+    .Select(x => new PeopleViewDto(x)
+        {
+            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+        }
+    .CopyFrom(x.City))
+    .ToList();
+```
+
+## 4. 服务注册代码自动创建
 
 Service
 > 自动创建服务注册代码，让Program更加清洁
@@ -94,7 +142,7 @@ CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
 public class WeatherForecastService
 ```
 
-## 4. 增强数据交换对象及简化EF
+## 5. 增强数据交换对象及简化EF
 
 Dto
 > 增强实体特性，提供对象赋值，默认增删改查代码
@@ -156,7 +204,7 @@ peopleEntityDto.DeleteGen(context);
 context.SaveChanges();
 ```
 
-## 5. 自动实现INotifyPropertyChanged接口
+## 6. 自动实现INotifyPropertyChanged接口
 
 ```csharp
 [AddNotifyPropertyChanged("Id", typeof(long), XmlSummary = "从类上创建属性")]
