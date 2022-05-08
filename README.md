@@ -82,6 +82,9 @@ var people4Map = new People1Map(people2Map);
 
 简化在EF的Select中的无意义赋值代码，并能从多个对象汇获取数据
 
+### 数据库表关系图
+![DB](https://user-images.githubusercontent.com/7581981/167283026-aa693bab-2340-4348-a314-acc24e83b4e1.png)
+
 ### 返回的对象增加Mapping特性
 ```csharp
 [Mapping(typeof(People), typeof(City))]
