@@ -128,11 +128,14 @@ var PeopleViewDtos2 = context.People
     .ToList();
 ```
 
-## 4. 服务注册代码自动创建
+## 4. 服务注册及依赖注入代码自动创建
 
 Service
 > 自动创建服务注册代码，让Program更加清洁
 > - LifeCycle:自定义生命周期，默认Scoped
+
+AutoInject
+> 自动创建注入代码
 
 ### Program.cs中标记注册位置
 ```csharp
@@ -141,11 +144,15 @@ var builder = WebApplication.CreateBuilder(args);
 CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
 ```
 
-### 服务中增加ServiceAttribute
+### 服务中增加特性
 
 ```csharp
 [Service(LifeCycle = ELifeCycle.Singleton)]
 public class WeatherForecastService
+{
+    [AutoInject]
+    public DemoService3 DemoService3 { get; }
+}
 ```
 
 ## 5. 增强数据交换对象及简化EF

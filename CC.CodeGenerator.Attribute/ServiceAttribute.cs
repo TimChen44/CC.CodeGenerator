@@ -20,3 +20,15 @@ public enum ELifeCycle
     Scoped = 1,
     Transient = 2,
 }
+
+/// <summary>
+/// 标记类是否自动注入
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
+public class AutoInjectAttribute : Attribute
+{
+    /// <summary>
+    /// 类型转换：将注入的类型转换成另一个类型
+    /// </summary>
+    public Type TypeConversion { get; set; } 
+}
