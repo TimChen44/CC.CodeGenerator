@@ -39,9 +39,6 @@ public class DtoGenerator : ISourceGenerator
         {
             if ((syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
                 || (syntaxNode is RecordDeclarationSyntax rds && rds.AttributeLists.Count > 0)
-
-
-
                 )//有特性的类都进行候选，将来可以筛选出只有需要的特性的类
             {
                 CandidateClasses.Add((TypeDeclarationSyntax)syntaxNode);

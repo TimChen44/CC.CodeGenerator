@@ -16,10 +16,10 @@ public class ServiceGenerator : ISourceGenerator
     public void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
+        //if (!Debugger.IsAttached)
+        //{
+        //    Debugger.Launch();
+        //}
 #endif
 
         //注册一个语法修改通知
@@ -33,7 +33,6 @@ public class ServiceGenerator : ISourceGenerator
 
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
-
             if (syntaxNode is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0)
             {
                 CandidateClasses.Add((ClassDeclarationSyntax)syntaxNode);
