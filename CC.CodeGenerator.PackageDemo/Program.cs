@@ -32,7 +32,12 @@ var PeopleViewDtos1 = context.People
     .Select(x => new PeopleViewDto(x)
         {
             CityTitle = x.City.CityTitle,
-            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+            SkillViews = x.Skill.Select(y => new SkillViewDto()
+            {
+                PeopleId=y.PeopleId,
+                SkillId=y.SkillId,
+                SkillName=y.SkillName,
+            }).ToList()
         })
     .ToList();
 

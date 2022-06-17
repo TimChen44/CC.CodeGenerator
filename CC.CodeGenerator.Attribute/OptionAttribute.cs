@@ -25,13 +25,13 @@ public class AutoOptionAttribute : Attribute
     public string Options { get; set; }
 
 
-    /// <summary>
-    /// "全部"选项中文名
-    /// </summary>
-    public string AllText { get; set; }
+    ///// <summary>
+    ///// "全部"选项中文名
+    ///// </summary>
+    //public string AllText { get; set; }
 
-    /// <summary>
-    /// "无"选项中文名
-    /// </summary>
-    public string NothingText { get; set; }
+    ///// <summary>
+    ///// "无"选项中文名
+    ///// </summary>
+    //public string NothingText { get; set; }
 }

@@ -114,7 +114,12 @@ var PeopleViewDtos1 = context.People
     .Select(x => new PeopleViewDto(x)
         {
             CityTitle = x.City.CityTitle,
-            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+            SkillViews = x.Skill.Select(y => new SkillViewDto()
+            {
+                PeopleId=y.PeopleId,
+                SkillId=y.SkillId,
+                SkillName=y.SkillName,
+            }).ToList()
         })
     .ToList();
 
@@ -217,7 +222,58 @@ peopleEntityDto.DeleteGen(context);
 context.SaveChanges();
 ```
 
-## 6. 自动实现INotifyPropertyChanged接口
+## 6. 自动创建选项代码
+
+AutoOption
+- FieldName
+> 选项字段名
+
+- Options
+> 可选项目,使用“代码:存储:显示”格式，采用换行或“;”分割，示例：
+> - 1:Option1:选项1
+> - 2:Option2:选项2
+
+### 示例
+
+```csharp
+    [AutoOption("Sex", @"
+Female:0:女
+Male:1:男
+")]
+    public partial class People
+    {
+    }
+```
+
+生成代码如下
+```csharp
+public partial class People
+{
+    public class ESex
+    {
+        [DisplayName("女")]
+        public static string Female { get; set; } = "0";
+        [DisplayName("男")]
+        public static string Male { get; set; } = "1";
+    }
+
+    public static List<OptionCore> ESexOption {get; } = new List<OptionCore>()
+    {
+        new OptionCore("0","女"),
+        new OptionCore("1","男"),
+    };
+
+    public static List<OptionCore> ESexFilter {get; } = new List<OptionCore>()
+    {
+        new OptionCore("","全部"),
+        new OptionCore("0","女"),
+        new OptionCore("1","男"),
+    };
+}
+
+```
+
+## 7. 自动实现INotifyPropertyChanged接口
 
 ```csharp
 [AddNotifyPropertyChanged("Id", typeof(long), XmlSummary = "从类上创建属性")]
