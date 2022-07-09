@@ -1,5 +1,5 @@
 ﻿using CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
-namespace CC.CodeGenerator.NotifyPropertyChangeds;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators.NotifyPropertyChangeds;
 public class NotifyPropReceiver : ReceiverBase
 {
     public override void OnVisitSyntaxNode(SyntaxNode syntaxNode)

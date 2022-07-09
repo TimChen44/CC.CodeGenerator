@@ -1,7 +1,7 @@
 ﻿using CC.CodeGenerator.NotifyPropertyChangeds;
 using CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators.NotifyPropertyChangeds;
 
 [Generator]
 public class NotifyPropGenerator : GeneratorBase

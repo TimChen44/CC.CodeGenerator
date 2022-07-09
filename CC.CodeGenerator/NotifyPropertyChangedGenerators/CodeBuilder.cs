@@ -1,7 +1,7 @@
 ﻿#pragma warning disable CS8632 
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 public class CodeBuilder
 {
     private readonly HashSet<string> partialMatching = new() { "class", "record", "struct", "interface", };

@@ -1,4 +1,5 @@
 ﻿#pragma warning disable CS8632 
+using CC.CodeGenerator.NotifyPropertyChangedGenerators;
 using CC.CodeGenerator.NotifyPropertyChangeds.CodeBuilds;
 namespace CC.CodeGenerator.NotifyPropertyChangeds.Nodes;
 public abstract class NotifyPropNodeBase : NodeBase

@@ -1,5 +1,5 @@
 ﻿#pragma warning disable CS8632 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 
 public class ContextData
 {

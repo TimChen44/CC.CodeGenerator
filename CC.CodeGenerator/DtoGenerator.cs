@@ -1,17 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Linq;
-using Microsoft.CodeAnalysis.CSharp;
-using System.Reflection;
-using System.Collections.Immutable;
-using System.Security.Claims;
-
-namespace CC.CodeGenerator;
+﻿namespace CC.CodeGenerator;
 
 [Generator]
 public class DtoGenerator : ISourceGenerator
@@ -20,10 +7,10 @@ public class DtoGenerator : ISourceGenerator
     public void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
+        //if (!Debugger.IsAttached)
+        //{
+        //    Debugger.Launch();
+        //}
 #endif
 
         //注册一个语法修改通知
@@ -421,7 +408,7 @@ public static class {dtoSymbol.Name}Extension
 
         //检查是否有默认构造，如果有就不用创建默认，否则创建默认构造
         var defaultConstructor = "";
-        var constructorDeclaration = (classSymbol.GetSyntaxNode() as ClassDeclarationSyntax).Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
+        var constructorDeclaration = (classSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as ClassDeclarationSyntax)?.Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
         if (constructorDeclaration == null || constructorDeclaration.ParameterList.Parameters.Count != 0)
         {
             defaultConstructor = $"    public {classSymbol.Name}() {{ }}";

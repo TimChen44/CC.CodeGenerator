@@ -1,9 +1,4 @@
-﻿using Microsoft.CodeAnalysis.Text;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CC.CodeGenerator;
+﻿namespace CC.CodeGenerator;
 
 [Generator]
 public class EntityGenerator : ISourceGenerator

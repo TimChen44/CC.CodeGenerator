@@ -1,6 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using CC.CodeGenerator.NotifyPropertyChangedGenerators;
+using Microsoft.CodeAnalysis;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 
 public abstract class GeneratorBase : ISourceGenerator
 {

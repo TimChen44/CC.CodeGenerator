@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Reflection;
 
-namespace CC.CodeGenerator;
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 
 internal static class Extends
 {

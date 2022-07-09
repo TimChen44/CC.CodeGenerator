@@ -1,5 +1,7 @@
 ﻿#pragma warning disable CS8632 
-namespace CC.CodeGenerator;
+using System;
+
+namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 
 /// <summary>
 /// 用于成员的特性验证

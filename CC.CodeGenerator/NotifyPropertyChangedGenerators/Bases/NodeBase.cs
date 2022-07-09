@@ -1,4 +1,4 @@
-﻿namespace CC.CodeGenerator;
+﻿namespace CC.CodeGenerator.NotifyPropertyChangedGenerators;
 public abstract class NodeBase 
 {
     public SyntaxNode SyntaxNode { get; set; } = null!;
