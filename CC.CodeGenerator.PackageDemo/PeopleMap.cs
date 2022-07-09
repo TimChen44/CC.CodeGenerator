@@ -9,9 +9,7 @@ namespace CC.CodeGenerator.PackageDemo
     [Mapping(typeof(People2Map), typeof(People3Map))]
     public partial class People1Map
     {
-        public People1Map() { }
-
-        public Guid PeopleId { get; set; }
+        public Guid PeopleId { get; set; } 
         public string Name { get; set; }
 
 

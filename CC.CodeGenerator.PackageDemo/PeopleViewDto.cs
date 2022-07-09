@@ -9,7 +9,6 @@ namespace CC.CodeGenerator.PackageDemo
     [Mapping(typeof(People), typeof(City))]
     public partial class PeopleViewDto
     {
-        public PeopleViewDto() { }
         public Guid PeopleId { get; set; }
         public string Name { get; set; }
 
@@ -21,7 +20,7 @@ namespace CC.CodeGenerator.PackageDemo
     [Mapping(typeof(Skill))]
     public partial class SkillViewDto
     {
-        public SkillViewDto() { }
+
         public Guid SkillId { get; set; }
         public Guid PeopleId { get; set; }
         public string SkillName { get; set; }

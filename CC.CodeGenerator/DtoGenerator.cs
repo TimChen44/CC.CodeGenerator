@@ -20,10 +20,10 @@ public class DtoGenerator : ISourceGenerator
     public void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG
-        //if (!Debugger.IsAttached)
-        //{
-        //    Debugger.Launch();
-        //}
+        if (!Debugger.IsAttached)
+        {
+            Debugger.Launch();
+        }
 #endif
 
         //注册一个语法修改通知
@@ -420,7 +420,12 @@ public static class {dtoSymbol.Name}Extension
         }
 
         //检查是否有默认构造，如果有就不用创建默认，否则创建默认构造
-
+        var defaultConstructor = "";
+        var constructorDeclaration = (classSymbol.GetSyntaxNode() as ClassDeclarationSyntax).Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
+        if (constructorDeclaration == null || constructorDeclaration.ParameterList.Parameters.Count != 0)
+        {
+            defaultConstructor = $"    public {classSymbol.Name}() {{ }}";
+        }
 
         //类的类型
         var classTypeName = classSymbol.IsRecord ? "record" : "class";
@@ -433,9 +438,8 @@ namespace {classSymbol.ContainingNamespace.ToDisplayString()};
 
 public partial {classTypeName} {classSymbol.Name}
 {{
-
+{defaultConstructor}
 {code}
-
 }}
 ";
 
@@ -447,11 +451,10 @@ public partial {classTypeName} {classSymbol.Name}
     {
         if (targetSymbol == null) return null;
 
-        var codeCopyTo =  AssignCode("target", targetProperties, "this", mappingProperties, ";");
+        var codeCopyTo = AssignCode("target", targetProperties, "this", mappingProperties, ";");
         var codeCopyFrom = AssignCode("this", mappingProperties, "source", targetProperties, ";");
 
         return @$"
-
     /// <summary>
     /// 基于源赋值初始化
     /// </summary>
