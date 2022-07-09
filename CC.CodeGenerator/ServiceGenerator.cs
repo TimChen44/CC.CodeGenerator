@@ -46,8 +46,6 @@ public class ServiceGenerator : ISourceGenerator
         {
             return;
         }
-
-        //把DtoAttribute加入当前的编译中
         Compilation compilation = context.Compilation;
 
         CreateService(context, compilation, receiver.CandidateClasses);
@@ -62,7 +60,7 @@ public class ServiceGenerator : ISourceGenerator
         //获得DtoAttribute类符号
         INamedTypeSymbol autoInjectAttrSymbol = compilation.GetTypeByMetadataName("CC.CodeGenerator.AutoInjectAttribute");
 
-        List<string> addServiceCode = new List<string>();
+        StringBuilder addServiceCode = new StringBuilder();
 
         //创建Service扩展
         foreach (ClassDeclarationSyntax serviceClass in candidateClasses)
@@ -70,35 +68,17 @@ public class ServiceGenerator : ISourceGenerator
             //获得Service类的类型符号
             if (compilation.GetSemanticModel(serviceClass.SyntaxTree).GetDeclaredSymbol(serviceClass) is not ITypeSymbol serviceSymbol) return;
 
-            //寻找是否有ServiceAttribute
-            var serverAttr = serviceSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass.Equals(serviceAttrSymbol, SymbolEqualityComparer.Default));
-            if (serverAttr == null) continue;
-
-            //获得LifeCycle的名字
-            var attLifeCycle = serverAttr.NamedArguments.FirstOrDefault(x => x.Key == "LifeCycle").Value.Value;
-
-            var attLifeCycleText = attLifeCycle switch
-            {
-                0 => "Singleton",
-                1 => "Scoped",
-                2 => "Transient",
-                _ => "Scoped",
-            };
-
-            addServiceCode.Add($"builder.Services.Add{attLifeCycleText}<{serviceSymbol.ContainingNamespace}.{serviceSymbol.Name}>();");
+            CreateAddServices(serviceSymbol, serviceAttrSymbol, addServiceCode);
 
             CreateAutoInject(context, serviceSymbol, autoInjectAttrSymbol);
         }
 
         //如果没有使用就停止生成
-        if (addServiceCode.Count is 0) return;
-
-        var code = "";
-        if (addServiceCode.Count > 0)
-            code = addServiceCode.Aggregate((a, b) => a + "\r\n" + b);
-
-        //组装代码
-        string autoDICode = @$"using Microsoft.AspNetCore.Builder; 
+        var code = addServiceCode.ToString();
+        if (string.IsNullOrWhiteSpace(code) == false)
+        {
+            //组装代码
+            string autoDICode = @$"using Microsoft.AspNetCore.Builder; 
 
 namespace CC.CodeGenerator;
 public static class AutoDI
@@ -109,49 +89,80 @@ public static class AutoDI
     }}
 }}
 ";
-        context.AddSource($@"AutoDI.cs", SourceText.From(autoDICode, Encoding.UTF8));
-
+            context.AddSource($@"AutoDI.cs", SourceText.From(autoDICode, Encoding.UTF8));
+        }
     }
 
-    public void CreateAutoInject(GeneratorExecutionContext context, ITypeSymbol classSymbol, INamedTypeSymbol autoInjectAttrSymbol)
+    /// <summary>
+    /// 生成添加注入代码
+    /// </summary>
+    public void CreateAddServices(ITypeSymbol serviceSymbol, INamedTypeSymbol serviceAttrSymbol, StringBuilder addServiceCode)
     {
-        //寻找AutoInject
-        List<IPropertySymbol> autoInjectProps =
-             classSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
-                      .Where(x => x.Kind == SymbolKind.Property)//只保留属性
-                      .Where(x => x.GetAttributes().Any(y => y.AttributeClass.Equals(autoInjectAttrSymbol, SymbolEqualityComparer.Default)))
-                      .Cast<IPropertySymbol>()
-                      .ToList();
+        //寻找是否有ServiceAttribute
+        var serverAttr = serviceSymbol.GetAttributes().FirstOrDefault(x => x.AttributeClass.Equals(serviceAttrSymbol, SymbolEqualityComparer.Default));
+        if (serverAttr == null) return;
 
+        //获得LifeCycle的名字
+        var attLifeCycle = serverAttr.NamedArguments.FirstOrDefault(x => x.Key == "LifeCycle").Value.Value;
+
+        var attLifeCycleText = attLifeCycle switch
+        {
+            0 => "Singleton",
+            1 => "Scoped",
+            2 => "Transient",
+            _ => "Scoped",
+        };
+
+        addServiceCode.AppendLine($"builder.Services.Add{attLifeCycleText}<{serviceSymbol.ContainingNamespace}.{serviceSymbol.Name}>();");
+    }
+
+    /// <summary>
+    /// 生成自动注入代码
+    /// </summary>
+    public void CreateAutoInject(GeneratorExecutionContext context, ITypeSymbol serviceSymbol, INamedTypeSymbol autoInjectAttrSymbol)
+    {
+        //寻找是否有ServiceAttribute
+        List<AttributeData> injectAttrs = serviceSymbol.GetAttributes().Where(x => x.AttributeClass.Equals(autoInjectAttrSymbol, SymbolEqualityComparer.Default)).ToList();
+
+        //定义
+        StringBuilder definitions= new StringBuilder();
         //入参
         List<string> inputPars = new List<string>();
         //赋值
-        List<string> assigns = new List<string>();
+        StringBuilder assigns = new StringBuilder();
 
-        foreach (var prop in autoInjectProps)
+        foreach (var injectAttr in injectAttrs)
         {
-            inputPars.Add($"{prop.Type.ContainingNamespace.ToDisplayString()}.{prop.Type.Name} {prop.Name.ToLower()}");
-            assigns.Add($"        {prop.Name} = {prop.Name.ToLower()};");
+            //构造参数
+            var constArgs = injectAttr.ConstructorArguments.ToList();
+
+            var typeSymbol = constArgs.FirstOrDefault().Value as ITypeSymbol;
+            var rename = typeSymbol.Name;
+            if (constArgs.Count >= 2)
+                rename = constArgs[1].Value as string;
+
+            definitions.AppendLine($"    private readonly {typeSymbol.Name} {rename};");
+            inputPars.Add($"{typeSymbol.ContainingNamespace.ToDisplayString()}.{typeSymbol.Name} inject{rename}");
+            assigns.AppendLine($"        {rename} = inject{rename};");
         }
 
         if (inputPars.Count == 0) return;//如果没有注入就不用创建代码
- 
-        //类的类型
-        var classTypeName = classSymbol.IsRecord ? "record" : "class";
 
         //组装代码
-        string autoInjectCode = @$"namespace {classSymbol.ContainingNamespace.ToDisplayString()};
+        string autoInjectCode = @$"namespace {serviceSymbol.ContainingNamespace.ToDisplayString()};
 
-public partial {classTypeName} {classSymbol.Name}
+public partial class {serviceSymbol.Name}
 {{
-    public {classSymbol.Name}({inputPars.Aggregate((a, b) => $"{a}, {b}")})
+{definitions}
+
+    public {serviceSymbol.Name}({inputPars.Aggregate((a, b) => $"{a}, {b}")})
     {{
-{assigns.Aggregate((a, b) => $"{a}\r\n{b}")}
+{assigns}
     }}
 }}
-";
+        ";
 
-        context.AddSource($@"{classSymbol.ContainingNamespace.ToDisplayString()}.{classSymbol.Name}.inject.g.cs", SourceText.From(autoInjectCode, Encoding.UTF8));
+        context.AddSource($@"{serviceSymbol.ContainingNamespace.ToDisplayString()}.{serviceSymbol.Name}.inject.g.cs", SourceText.From(autoInjectCode, Encoding.UTF8));
     }
 }
 

@@ -21,14 +21,32 @@ public enum ELifeCycle
     Transient = 2,
 }
 
+
 /// <summary>
 /// 标记类是否自动注入
 /// </summary>
-[AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
 public class AutoInjectAttribute : Attribute
 {
+    public AutoInjectAttribute(Type serviceType)
+    {
+        ServiceType = serviceType;
+    }
+
+    public AutoInjectAttribute(Type serviceType, string rename)
+    {
+        ServiceType = serviceType;
+        Rename = rename;
+    }
+
+
     /// <summary>
-    /// 类型转换：将注入的类型转换成另一个类型
+    /// 服务类型
     /// </summary>
-    public Type TypeConversion { get; set; } 
+    public Type ServiceType { get; set; }
+    /// <summary>
+    /// 重命名
+    /// </summary>
+    public string Rename { get; set; }
+
 }

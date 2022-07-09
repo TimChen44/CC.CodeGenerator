@@ -3,9 +3,6 @@ namespace CC.CodeGenerator.Demo.BlazorServer.Data
     [Service]
     public partial class WeatherForecastService
     {
-        [AutoInject]
-        public DemoService3 DemoService3 { get; }
-
 
         private static readonly string[] Summaries = new[]
         {
@@ -14,8 +11,6 @@ namespace CC.CodeGenerator.Demo.BlazorServer.Data
 
         public Task<WeatherForecast[]> GetForecastAsync(DateTime startDate)
         {
-            DemoService3.Run();
-
             return Task.FromResult(Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = startDate.AddDays(index),

@@ -13,20 +13,16 @@
     }
 
     [Service]
-    public partial class DemoService3
+    [AutoInject(typeof(DemoService1))]
+    [AutoInject(typeof(DemoService2),"DS2")]
+    public partial class DemoService4
     {
-        [AutoInject]
-        public DemoService1 DemoService1 { get; }
-
-        [AutoInject]
-        public DemoService2 DemoService2 { get; }
 
         public void Run()
         {
             Console.WriteLine(DemoService1.Name);
-            Console.WriteLine(DemoService2.Name);
+            Console.WriteLine(DS2.Name);
+
         }
     }
-
-
 }
