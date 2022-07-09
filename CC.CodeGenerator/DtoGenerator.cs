@@ -353,17 +353,41 @@ public static class {dtoSymbol.Name}Extension
     }
 
     //Delete 删除
-    private string Delete(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
+    private string Delete(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<IPropertySymbol> keyIds)
     {
         if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
 
+        List<string> keyParameters = new List<string>();
+        List<string> keyCompares = new List<string>();
+        foreach (var keyId in keyIds)
+        {
+            keyParameters.Add($"{keyId.Type.Name} {keyId.Name}");
+            keyCompares.Add($"x.{keyId.Name} == {keyId.Name}");
+        }
+        var keyParameter = keyParameters.Aggregate((a, b) => a + ", " + b);
+        var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
+
         return @$"
     /// <summary>
-    /// 删除
+    /// 删除，基于Dto
     /// </summary>
     public Result DeleteGen({contextName} context)
     {{
         var entity = FirstQueryable(context).FirstOrDefault();
+        if (entity == null)
+        {{
+            return new Result(""内容不存在"", false);
+        }}
+        context.Remove(entity);
+        return Result.OK;
+    }}
+
+    /// <summary>
+    /// 删除，基于主键
+    /// </summary>
+    public static Result DeleteGen({contextName} context, {keyParameter})
+    {{
+        var entity = context.People.Where(x => {keyCompare}).FirstOrDefault();
         if (entity == null)
         {{
             return new Result(""内容不存在"", false);

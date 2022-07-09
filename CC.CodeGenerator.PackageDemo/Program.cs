@@ -1,8 +1,5 @@
-﻿global using CC.CodeGenerator;
-global using CC.CodeGenerator.Demo.Entity;
+﻿global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
-using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 
 #region MappingGenerator
@@ -82,6 +79,9 @@ peopleEntityDto.SaveGen(context);
 
 //Dto快速删除
 peopleEntityDto.DeleteGen(context);
+
+//主键快速删除
+PeopleDto.DeleteGen(context, new Guid("25fcf1e5-a47c-432a-b2c6-25a2a09a5e01"));
 
 //最后保存操作
 //context.SaveChanges();
