@@ -45,7 +45,6 @@ public partial class People1Map
     public Guid PeopleId { get; set; }
     public string UserName { get; set; }
     public string City { get; set; }
-    [MappingIgnore]
     public string Disply => $"{UserName}";
 }
 
@@ -108,8 +107,9 @@ public partial class SkillViewDto
 ```
 
 ### 使用示例
+
+**☹️常规代码**
 ```csharp
-//简化赋值
 var PeopleViewDtos1 = context.People
     .Select(x => new PeopleViewDto(x)
         {
@@ -122,14 +122,18 @@ var PeopleViewDtos1 = context.People
             }).ToList()
         })
     .ToList();
+```
 
-//通过级联CopyFrom函数可以从多个实体获得数据
+**😁简化代码**
+```csharp
+
+
 var PeopleViewDtos2 = context.People
-    .Select(x => new PeopleViewDto(x)
+    .Select(x => new PeopleViewDto(x) //赋值直接通过对象构造完成
         {
             SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
         }
-    .CopyFrom(x.City))
+    .CopyFrom(x.City)) //通过级联CopyFrom函数可以从多个实体获得数据
     .ToList();
 ```
 
@@ -149,15 +153,49 @@ var builder = WebApplication.CreateBuilder(args);
 CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
 ```
 
-### 服务中增加特性
+### 使用示例
 
+**☹️常规代码**
 ```csharp
-[Service(LifeCycle = ELifeCycle.Singleton)]
-public class WeatherForecastService
+//Program.cs
+builder.Services.AddScoped<DemoService1>();
+builder.Services.AddScoped<DemoService2>();
+builder.Services.AddScoped<DemoService4>();
+
+//Service.cs
+public class DemoService1 { }
+
+public class DemoService2 { }
+
+public partial class DemoService4
 {
-    [AutoInject]
-    public DemoService3 DemoService3 { get; }
+    private readonly DemoService1 DemoService1;
+    private readonly DemoService2 DS2;
+
+    public DemoService4(DemoService1 injectDemoService1, DemoService2 injectDS2)
+    {
+        DemoService1 = injectDemoService1;
+        DS2 = injectDS2;
+    }
 }
+```
+
+**😁简化代码**
+```csharp
+//Program.cs
+CC.CodeGenerator.AutoDI.AddServices(builder);
+
+//Service.cs
+[Service] //通过特性实现服务注册
+public class DemoService1 { }
+
+[Service]
+public class DemoService2 { }
+
+[Service]
+[AutoInject(typeof(DemoService1))] //通过特性实现服务注入
+[AutoInject(typeof(DemoService2),"DS2")]
+public partial class DemoService4 { }
 ```
 
 ## 5. 增强数据交换对象及简化EF

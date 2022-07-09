@@ -14,7 +14,7 @@ public class NotifyPropGenerator : GeneratorBase
     public override void Initialize(GeneratorInitializationContext context)
     {
 #if !DEBUG
-        DebuggerLaunch();
+        //DebuggerLaunch();
 #endif
         base.Initialize(context);
     }
