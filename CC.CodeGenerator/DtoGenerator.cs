@@ -387,7 +387,7 @@ public static class {dtoSymbol.Name}Extension
     /// </summary>
     public static Result DeleteGen({contextName} context, {keyParameter})
     {{
-        var entity = context.People.Where(x => {keyCompare}).FirstOrDefault();
+        var entity = context.{entitySymbol.Name}.Where(x => {keyCompare}).FirstOrDefault();
         if (entity == null)
         {{
             return new Result(""内容不存在"", false);
