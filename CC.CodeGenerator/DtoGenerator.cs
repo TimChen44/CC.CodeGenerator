@@ -432,7 +432,7 @@ public static class {dtoSymbol.Name}Extension
 
         //检查是否有默认构造，如果有就不用创建默认，否则创建默认构造
         var defaultConstructor = "";
-        var constructorDeclaration = (classSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as ClassDeclarationSyntax)?.Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
+        var constructorDeclaration = (classSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as TypeDeclarationSyntax)?.Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
         if (constructorDeclaration == null || constructorDeclaration.ParameterList.Parameters.Count != 0)
         {
             defaultConstructor = $"    public {classSymbol.Name}() {{ }}";

@@ -141,7 +141,7 @@ public static class AutoDI
             if (constArgs.Count >= 2)
                 rename = constArgs[1].Value as string;
 
-            definitions.AppendLine($"    private readonly {typeSymbol.Name} {rename};");
+            definitions.AppendLine($"    private readonly {typeSymbol.ContainingNamespace.ToDisplayString()}.{typeSymbol.Name} {rename};");
             inputPars.Add($"{typeSymbol.ContainingNamespace.ToDisplayString()}.{typeSymbol.Name} inject{rename}");
             assigns.AppendLine($"        {rename} = inject{rename};");
         }
