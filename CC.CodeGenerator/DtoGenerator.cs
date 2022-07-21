@@ -335,6 +335,14 @@ public static class {dtoSymbol.Name}Extension
         if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
         if (entitySymbol == null) return null;
 
+        List<string> keyInits = new List<string>();
+        foreach (var keyId in keyIds)
+        {
+            keyInits.Add($"{keyId.Name} = this.{keyId.Name}");
+        }
+        var keyInit = keyInits.Count()>0?  keyInits.Aggregate((a, b) => a + ", " + b):"";
+
+
         return @$"
     /// <summary>
     /// 保存
@@ -344,7 +352,7 @@ public static class {dtoSymbol.Name}Extension
         var entity = FirstQueryable(context).FirstOrDefault();
         if (entity == null)
         {{
-            entity = new {entitySymbol.Name}();
+            entity = new {entitySymbol.Name}() {{ {keyInit} }};
             context.Add(entity);
         }}
         CopyToEntity(entity);

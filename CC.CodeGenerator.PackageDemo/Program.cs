@@ -1,6 +1,14 @@
 ﻿global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
 
+var context = new DemoContext();
+
+var p1 = PeopleDto.NewGen();
+var p2 = PeopleDto.NewGen();
+p1.SaveGen(context);
+p2.SaveGen(context);
+
+
 
 #region MappingGenerator
 
@@ -20,7 +28,7 @@ var people4Map = new People1Map(people2Map);
 
 #endregion
 
-var context = new DemoContext();
+
 
 #region EFSelect
 
@@ -53,6 +61,7 @@ var PeopleViewDtos2 = context.People
 
 //创建Dto
 var secondDto = new PeopleDto() { Age = 20 };
+
 
 //初始新的Dto
 var firstDto = PeopleDto.NewGen();
