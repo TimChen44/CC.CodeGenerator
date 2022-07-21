@@ -25,3 +25,18 @@ public class DtoIgnoreAttribute : Attribute
 {
 
 }
+
+//标记对象的外键
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+public class DtoForeignKeyAttribute : Attribute
+{
+    public string ForeignKey { get; }
+    public bool AllowNull { get; }
+
+    public DtoForeignKeyAttribute(string foreignKey, bool allowNull = true)
+    {
+        ForeignKey = foreignKey;
+        AllowNull = allowNull;
+    }
+
+}

@@ -1,5 +1,6 @@
 ﻿global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
+using CC.Core;
 
 var context = new DemoContext();
 
@@ -98,3 +99,5 @@ PeopleDto.DeleteGen(context, new Guid("25fcf1e5-a47c-432a-b2c6-25a2a09a5e01"));
 #endregion
 
 Console.Read();
+
+

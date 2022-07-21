@@ -7,10 +7,10 @@ public class DtoGenerator : ISourceGenerator
     public void Initialize(GeneratorInitializationContext context)
     {
 #if DEBUG
-        //if (!Debugger.IsAttached)
-        //{
-        //    Debugger.Launch();
-        //}
+        if (!Debugger.IsAttached)
+        {
+            Debugger.Launch();
+        }
 #endif
 
         //注册一个语法修改通知
@@ -95,6 +95,14 @@ public class DtoGenerator : ISourceGenerator
             .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoIgnoreAttribute") == false)//排除忽略属性
             .ToList();
 
+        //获得外键属性
+        var dtoFKeyProps = classSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property)
+                   .Where(x => x.Kind == SymbolKind.Property)//只保留属性
+                   .Cast<IPropertySymbol>()
+                   .Where(x => x.Type.IsValueType == false)//只保留引用类型
+                   .Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoForeignKeyAttribute") == true)
+                   .ToList();
+
         #endregion
 
         #region EF实体
@@ -143,7 +151,7 @@ public partial {classTypeName} {classSymbol.Name}
 
 {ReLoad(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
-{Save(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
+{Save(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds, dtoFKeyProps)}
 
 {Delete(classSymbol, dtoProperties, entitySymbol, entityProperties, contextName, entityKeyIds)}
 
@@ -330,18 +338,36 @@ public static class {dtoSymbol.Name}Extension
     }
 
     //Save 保存
-    private string Save(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol, IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds)
+    private string Save(ITypeSymbol dtoSymbol, IEnumerable<ISymbol> dtoProperties, ITypeSymbol entitySymbol,
+        IEnumerable<ISymbol> entityProperties, string contextName, IEnumerable<ISymbol> keyIds,
+        IEnumerable<IPropertySymbol> dtoFKeyProps)
     {
         if (string.IsNullOrWhiteSpace(contextName) || keyIds.Count() == 0) return null;
         if (entitySymbol == null) return null;
 
+        //赋值主键
         List<string> keyInits = new List<string>();
         foreach (var keyId in keyIds)
         {
             keyInits.Add($"{keyId.Name} = this.{keyId.Name}");
         }
-        var keyInit = keyInits.Count()>0?  keyInits.Aggregate((a, b) => a + ", " + b):"";
+        var keyInit = keyInits.Count() > 0 ? keyInits.Aggregate((a, b) => a + ", " + b) : "";
 
+        //赋值外键
+        StringBuilder fkAssignCode = new StringBuilder();
+        foreach (var fkProp in dtoFKeyProps)
+        {
+            var attr = fkProp.GetAttributes().FirstOrDefault(x => x.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoForeignKeyAttribute");
+            if (attr == null) continue;
+            // attr.NamedArguments
+            var foreignKey = attr.ConstructorArguments[0].Value;
+            var allowNull = attr.ConstructorArguments[1].Value as bool?;
+
+            if (allowNull == true)
+                fkAssignCode.AppendLine($"        entity.{foreignKey} = this.{fkProp.Name}?.{foreignKey};");
+            else
+                fkAssignCode.AppendLine($"        entity.{foreignKey} = this.{fkProp.Name}.{foreignKey};");
+        }
 
         return @$"
     /// <summary>
@@ -356,6 +382,7 @@ public static class {dtoSymbol.Name}Extension
             context.Add(entity);
         }}
         CopyToEntity(entity);
+{fkAssignCode}
         return new Result<{entitySymbol.Name}>(entity);
     }}";
     }
