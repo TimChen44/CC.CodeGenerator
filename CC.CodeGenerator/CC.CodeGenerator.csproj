@@ -7,7 +7,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageOutputPath>../Packages/</PackageOutputPath>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>1.8.3.0719</Version>
+		<Version>1.8.4.0721</Version>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<PackageProjectUrl>https://github.com/TimChen44/CC.CodeGenerator</PackageProjectUrl>
 	</PropertyGroup>
