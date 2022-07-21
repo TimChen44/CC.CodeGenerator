@@ -1,15 +1,9 @@
 ﻿global using CC.CodeGenerator.Demo.Entity;
 using CC.CodeGenerator.PackageDemo;
 using CC.Core;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 var context = new DemoContext();
-
-var p1 = PeopleDto.NewGen();
-var p2 = PeopleDto.NewGen();
-p1.SaveGen(context);
-p2.SaveGen(context);
-
-
 
 #region MappingGenerator
 
