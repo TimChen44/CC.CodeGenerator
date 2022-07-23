@@ -11,7 +11,7 @@ namespace CC.CodeGenerator.Definition
         private readonly ITypeSymbol TypeSymbol;
         public string Name => TypeSymbol?.Name;
         public List<PropertyData> PropertyDatas { get; set; } = new List<PropertyData>();
-    
+
 
         public AttributeData DtoAttr { get; set; }
         public List<PropertyData> DtoPropertyDatas { get; set; } = new List<PropertyData>();
@@ -32,15 +32,17 @@ namespace CC.CodeGenerator.Definition
         /// </summary>
         public List<IPropertySymbol> EntityKeyIds { get; set; }
 
-   
+
         public AttributeData MappingAttr { get; set; }
         public List<PropertyData> MappingPropertyDatas { get; set; } = new List<PropertyData>();
 
 
-        public TypeData(LoadTool loadTool, ITypeSymbol typeSymbol)
+        public TypeData(LoadTool loadTool, ITypeSymbol typeSymbol, AttributeData dtoAttr, AttributeData mappingAttr)
         {
             LoadTool = loadTool;
             TypeSymbol = typeSymbol;
+            DtoAttr = dtoAttr;
+            MappingAttr = mappingAttr;
 
             //类中的属性，使用延迟初始化，如果没有对应的特性就免去此处的反射操作优化性能
             var props = typeSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
@@ -50,12 +52,6 @@ namespace CC.CodeGenerator.Definition
                 PropertyDatas.Add(propData);
             }
 
-
-            //读取类的特性
-            var attrs = typeSymbol.GetAttributes();
-           
-            //读取实体操作配置
-            DtoAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.DtoAttSymbol, SymbolEqualityComparer.Default));
             if (DtoAttr != null)
             {
                 //获得DBContext的名字
@@ -67,12 +63,10 @@ namespace CC.CodeGenerator.Definition
                 //获得实体主键
                 EntityKeyIds = EntityProperties?.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
 
-                DtoPropertyDatas = PropertyDatas.Where(x => x.DtoIgnoreAttr != null).ToList();
+                DtoPropertyDatas = PropertyDatas.Where(x => x.DtoIgnoreAttr == null).ToList();
             }
 
-            //读取映射配置
-            MappingAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.MappingAttrSymbol, SymbolEqualityComparer.Default));
-            if (MappingAttr!=null)
+            if (MappingAttr != null)
             {
                 MappingPropertyDatas = PropertyDatas.Where(x => x.MappingIgnoreAttr != null).ToList();
             }

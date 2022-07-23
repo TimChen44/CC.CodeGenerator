@@ -14,15 +14,19 @@
    "SelectedToBeGenerated": 0,
    "Tables": [
       {
-         "Name": "[dbo].[City]",
+         "Name": "[dbo].[Address]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[People]",
+         "Name": "[dbo].[Company]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Skill]",
+         "Name": "[dbo].[CompanyCertificate]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Personnel]",
          "ObjectType": 0
       }
    ],

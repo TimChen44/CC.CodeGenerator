@@ -63,7 +63,7 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 自己的值复制到实体
     /// </summary>
-    public virtual void CopyToEntity({TypeData.Name} entity)
+    public virtual void CopyToEntity({TypeData.EntitySymbol.Name} entity)
     {{
 {code}
     }}");
@@ -251,8 +251,6 @@ namespace CC.CodeGenerator.Builder
             var code = extBuilder.AssignCode("", TypeData.DtoPropertyDatas, "x", TypeData.EntityProperties, ",");
 
             extBuilder.AddMethod(@$"
-public static class {TypeData.Name}Extension
-{{
     /// <summary>
     /// EntitySelect
     /// </summary>
@@ -263,7 +261,7 @@ public static class {TypeData.Name}Extension
 {code}
         }});
     }}
-}}");
+");
 
         }
 

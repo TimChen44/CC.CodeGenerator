@@ -19,9 +19,10 @@ namespace CC.CodeGenerator.Demo.Entity
         {
         }
 
-        public virtual DbSet<City> City { get; set; }
-        public virtual DbSet<People> People { get; set; }
-        public virtual DbSet<Skill> Skill { get; set; }
+        public virtual DbSet<Address> Address { get; set; }
+        public virtual DbSet<Company> Company { get; set; }
+        public virtual DbSet<CompanyCertificate> CompanyCertificate { get; set; }
+        public virtual DbSet<Personnel> Personnel { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -34,9 +35,10 @@ namespace CC.CodeGenerator.Demo.Entity
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfiguration(new Configurations.CityConfiguration());
-            modelBuilder.ApplyConfiguration(new Configurations.PeopleConfiguration());
-            modelBuilder.ApplyConfiguration(new Configurations.SkillConfiguration());
+            modelBuilder.ApplyConfiguration(new Configurations.AddressConfiguration());
+            modelBuilder.ApplyConfiguration(new Configurations.CompanyConfiguration());
+            modelBuilder.ApplyConfiguration(new Configurations.CompanyCertificateConfiguration());
+            modelBuilder.ApplyConfiguration(new Configurations.PersonnelConfiguration());
 
             OnModelCreatingPartial(modelBuilder);
         }

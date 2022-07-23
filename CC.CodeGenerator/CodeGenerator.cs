@@ -57,8 +57,10 @@ namespace CC.CodeGenerator
 
                     var typeData = loadTool.CreateTypeData(typeSymbol);
 
+                    if (typeData == null) continue;//如果没有必要的特性，就跳过
+
                     var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
-                    var extCode = new ClassCodeBuilder(typeSymbol, "ext");
+                    var extCode = new ClassCodeBuilder(typeSymbol, "ext") { IsExtension = true };
 
                     //扩展函数
                     var dtoBuilder = new DtoBuilder(typeSymbol, typeData);
@@ -78,7 +80,6 @@ namespace CC.CodeGenerator
                     Debug.WriteLine(ex.ToString());
                 }
             }
-
         }
     }
 }

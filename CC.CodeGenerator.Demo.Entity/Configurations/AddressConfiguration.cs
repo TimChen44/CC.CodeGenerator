@@ -8,17 +8,15 @@ using System.Collections.Generic;
 
 namespace CC.CodeGenerator.Demo.Entity.Configurations
 {
-    public partial class CityConfiguration : IEntityTypeConfiguration<City>
+    public partial class AddressConfiguration : IEntityTypeConfiguration<Address>
     {
-        public void Configure(EntityTypeBuilder<City> entity)
+        public void Configure(EntityTypeBuilder<Address> entity)
         {
-            entity.Property(e => e.CityId).HasComment("城市");
-
-            entity.Property(e => e.CityTitle).HasComment("名称");
+            entity.Property(e => e.AddressId).ValueGeneratedNever();
 
             OnConfigurePartial(entity);
         }
 
-        partial void OnConfigurePartial(EntityTypeBuilder<City> entity);
+        partial void OnConfigurePartial(EntityTypeBuilder<Address> entity);
     }
 }

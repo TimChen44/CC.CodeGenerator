@@ -32,7 +32,18 @@ namespace CC.CodeGenerator.Definition
 
         public TypeData CreateTypeData(ITypeSymbol typeSymbol)
         {
-            return new TypeData(this, typeSymbol);
+            //读取类的特性
+            var attrs = typeSymbol.GetAttributes();
+
+            //读取实体操作配置
+            var dtoAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(DtoAttSymbol, SymbolEqualityComparer.Default));
+            //读取映射配置
+            var mappingAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(MappingAttrSymbol, SymbolEqualityComparer.Default));
+
+            //如果没有Dto和Mapping时，不需要处理
+            if (dtoAttr == null && mappingAttr == null) return null;
+
+            return new TypeData(this, typeSymbol, dtoAttr, mappingAttr);
         }
 
     }
