@@ -2,6 +2,7 @@
 using CC.CodeGenerator.Definition;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace CC.CodeGenerator
@@ -59,23 +60,25 @@ namespace CC.CodeGenerator
 
                     if (typeData == null) continue;//如果没有必要的特性，就跳过
 
+                    //实体操作
+                    var mapCreater = new MapCreate(typeSymbol);
+
                     var extCode = new ClassCodeBuilder(typeSymbol, "ext") { IsExtension = true };
 
                     if (typeData.DtoAttr != null)
                     {
-                        var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
-                        var dtoBuilder = new DtoCreate(typeSymbol, typeData);
-                        dtoBuilder.CreateCode(dtoCode, extCode);
-                        dtoCode.WriteCode(context);
+                        var dtoBuilder = new ClassCodeBuilder(typeSymbol, "dto");
+                        var dtoCreater = new DtoCreate(typeSymbol, typeData);
+                        dtoCreater.CreateCode(dtoBuilder, extCode);
+                        mapCreater.CreateDtoCode(dtoBuilder, typeData,dtoCreater.EntitySymbol);
+                        dtoBuilder.WriteCode(context);
                     }
 
                     if (typeData.MappingAttr != null)
                     {
-                        var mapCode = new ClassCodeBuilder(typeSymbol, "map");
-                        //实体操作
-                        var mapBuilder = new MapCreate(typeSymbol, typeData);
-                        mapBuilder.CreateCode(mapCode);
-                        mapCode.WriteCode(context);
+                        var mapBuilder = new ClassCodeBuilder(typeSymbol, "map");
+                        mapCreater.CreateMapCode(mapBuilder, typeData);
+                        mapBuilder.WriteCode(context);
                     }
 
                     extCode.WriteCode(context);

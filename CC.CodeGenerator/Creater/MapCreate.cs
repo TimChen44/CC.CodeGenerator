@@ -1,4 +1,5 @@
 ﻿using CC.CodeGenerator.Definition;
+using CC.CodeGenerator.NotifyPropertyChangedGenerators;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,49 +8,78 @@ namespace CC.CodeGenerator.Builder
 {
     public class MapCreate
     {
-        readonly TypeData TypeData;
-
         readonly ITypeSymbol TypeSymbol;
 
-        public List<PropertyData> MappingPropertyDatas { get; set; } = new List<PropertyData>();
-
-        public MapCreate(ITypeSymbol typeSymbol, TypeData typeData)
+        public MapCreate(ITypeSymbol typeSymbol)
         {
-            TypeData = typeData;
             TypeSymbol = typeSymbol;
-
-            MappingPropertyDatas = TypeData.PropertyAssignDatas.Where(x => x.MappingIgnoreAttr == null).ToList();
         }
 
-        public void CreateCode(ClassCodeBuilder mapBuilder)
+        //在Map文件中生成Map代码
+        public void CreateMapCode(ClassCodeBuilder mapBuilder, TypeData typeData)
         {
-            if (TypeData.MappingAttr == null) return;
+            if (typeData.MappingAttr == null) return;
+            //Map的目标
+            List<ITypeSymbol> targetSymbols = typeData.MappingAttr.ConstructorArguments.FirstOrDefault().Values.Select(x => x.Value as ITypeSymbol).Distinct().ToList();
 
+            //Map所有字段
+            var mappingPropertiesAll = typeData.PropertyAssignDatas;
+            //Map排除后字段
+            var mappingPropertiesIgnore = mappingPropertiesAll.Where(x => x.MappingIgnoreAttr == null).ToList();
+
+            DefaultConstructor(mapBuilder);
+
+            foreach (var targetSymbol in targetSymbols)
+            {
+                //获得所有字段
+                var targetPropertiesAll = targetSymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property)
+                    .Cast<IPropertySymbol>()
+                    .ToList() ?? new List<IPropertySymbol>();
+                //目标排除后字段
+                var targetPropertiesIgnore = targetPropertiesAll.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.MappingIgnoreAttribute") == false);
+
+                Construction(mapBuilder, targetSymbol);
+                CopyTo(mapBuilder, mappingPropertiesAll, targetSymbol, targetPropertiesIgnore);
+                CopyFrom(mapBuilder, mappingPropertiesIgnore, targetSymbol, targetPropertiesAll);
+            }
+
+        }
+
+
+        public void CreateDtoCode(ClassCodeBuilder dtoBuilder, TypeData typeData, ITypeSymbol targetSymbol)
+        {
+            //Map的目标
+            List<ITypeSymbol> targetSymbols = new List<ITypeSymbol>() { targetSymbol };
+            //Map的字段
+            var dtoPropertiesAll = typeData.PropertyAssignDatas;
+            var dtoPropertiesIgnore = typeData.PropertyAssignDatas.Where(x => x.DtoIgnoreAttr == null).ToList();
+
+            var targetPropertiesAll = targetSymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property)
+                   .Cast<IPropertySymbol>()
+                   .ToList() ?? new List<IPropertySymbol>();
+            //目标排除后字段
+            var targetPropertiesIgnore = targetPropertiesAll.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.MappingIgnoreAttribute") == false);
+
+            DefaultConstructor(dtoBuilder);
+            Construction(dtoBuilder, targetSymbol);
+            CopyTo(dtoBuilder, dtoPropertiesAll, targetSymbol, targetPropertiesIgnore);
+            CopyFrom(dtoBuilder, dtoPropertiesIgnore, targetSymbol, targetPropertiesAll);
+        }
+
+       
+
+        private void DefaultConstructor(ClassCodeBuilder codeBuilder)
+        {
             //检查是否有默认构造，如果有就不用创建默认，否则创建默认构造
             var constructorDeclaration = (TypeSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as TypeDeclarationSyntax)?.Members.FirstOrDefault(x => x.Kind() == SyntaxKind.ConstructorDeclaration) as ConstructorDeclarationSyntax;
             if (constructorDeclaration == null || constructorDeclaration.ParameterList.Parameters.Count != 0)
             {
                 var defaultConstructor = $"    public {TypeSymbol.Name}() {{ }}";
-                mapBuilder.AddConstructor(defaultConstructor);
-            }
-
-            //获得目标类型
-            List<ITypeSymbol> targetSymbols = TypeData.MappingAttr.ConstructorArguments.FirstOrDefault().Values.Select(x => x.Value as ITypeSymbol).Distinct().ToList();
-
-            foreach (var targetSymbol in targetSymbols)
-            {
-                //获得目标属性
-                var targetProperties = targetSymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property)
-                    .Cast<IPropertySymbol>()
-                    .ToList() ?? new List<IPropertySymbol>();
-
-                Construction(mapBuilder, targetSymbol);
-                CopyTo(mapBuilder, targetSymbol, targetProperties);
-                CopyFrom(mapBuilder, targetSymbol, targetProperties);
+                codeBuilder.AddConstructor(defaultConstructor);
             }
         }
 
-        //构造复制
+            //构造复制
         private void Construction(ClassCodeBuilder mapBuilder, ITypeSymbol targetSymbol)
         {
             var code = $@"
@@ -63,13 +93,9 @@ namespace CC.CodeGenerator.Builder
             mapBuilder.AddConstructor(code);
         }
 
-        private void CopyTo(ClassCodeBuilder mapBuilder, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
+        private void CopyTo(ClassCodeBuilder mapBuilder, IEnumerable<PropertyData> sourceProperties, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
         {
-            //目标对象中包含MappingIgnore对象，就不进行覆盖
-            var tProperties = targetProperties.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.MappingIgnoreAttribute") == false);
-
-            var codeCopyTo = mapBuilder.AssignCode("target", tProperties, "this", TypeData.PropertyAssignDatas, ";");
-
+            var codeCopyTo = mapBuilder.AssignCode("target", targetProperties, "this", sourceProperties, ";");
             var code = $@"
     /// <summary>
     /// 将自己赋值到目标
@@ -82,9 +108,9 @@ namespace CC.CodeGenerator.Builder
             mapBuilder.AddConstructor(code);
         }
 
-        private void CopyFrom(ClassCodeBuilder mapBuilder, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
+        private void CopyFrom(ClassCodeBuilder mapBuilder, IEnumerable<PropertyData> sourceProperties, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
         {
-            var codeCopyFrom = mapBuilder.AssignCode("this", MappingPropertyDatas, "source", targetProperties, ";");
+            var codeCopyFrom = mapBuilder.AssignCode("this", sourceProperties, "source", targetProperties, ";");
 
             var code = $@"
     /// <summary>

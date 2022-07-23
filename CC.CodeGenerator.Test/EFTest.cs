@@ -20,7 +20,7 @@ namespace CC.CodeGenerator.Test
             var context = new DemoContext();
 
             var company = context.Company.Where(x => x.CompanyId == new Guid("d7abc1aa-ee1a-466e-97ab-5499d7a9c186"))
-                 .Select(x => new CompanyDto(x)
+                 .Select(x => new CompanyDto(x) 
                  {
                      Address = x.Address.ToAddressDto(),
                      Personnels = x.Personnel.ToPersonnelDtos()
@@ -94,7 +94,6 @@ namespace CC.CodeGenerator.Test
     }
 
     [Dto(nameof(DemoContext),typeof(Company))]
-    [Mapping(typeof(Company))]
     public partial class CompanyDto
     {
         public Guid CompanyId { get; set; }
@@ -108,7 +107,6 @@ namespace CC.CodeGenerator.Test
     }
 
     [Dto(nameof(DemoContext),typeof(Address))]
-    [Mapping(typeof(Address))]
     public partial class AddressDto
     {
         public Guid AddressId { get; set; }
@@ -117,7 +115,6 @@ namespace CC.CodeGenerator.Test
     }
 
     [Dto(nameof(DemoContext),typeof(Personnel))]
-    [Mapping(typeof(Personnel))]
     public partial class PersonnelDto
     {
         public Guid PersonnelId { get; set; }
