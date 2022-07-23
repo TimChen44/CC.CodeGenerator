@@ -12,10 +12,10 @@ namespace CC.CodeGenerator
         public void Initialize(GeneratorInitializationContext context)
         {
 #if DEBUG
-            //if (!Debugger.IsAttached)
-            //{
-            //    Debugger.Launch();
-            //}
+            if (!Debugger.IsAttached)
+            {
+                Debugger.Launch();
+            }
 #endif
 
             //注册一个语法修改通知
@@ -59,20 +59,25 @@ namespace CC.CodeGenerator
 
                     if (typeData == null) continue;//如果没有必要的特性，就跳过
 
-                    var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
                     var extCode = new ClassCodeBuilder(typeSymbol, "ext") { IsExtension = true };
 
-                    //扩展函数
-                    var dtoBuilder = new DtoBuilder(typeSymbol, typeData);
-                    dtoBuilder.CreateCode(dtoCode, extCode);
+                    if (typeData.DtoAttr != null)
+                    {
+                        var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
+                        var dtoBuilder = new DtoBuilder(typeSymbol, typeData);
+                        dtoBuilder.CreateCode(dtoCode, extCode);
+                        dtoCode.WriteCode(context);
+                    }
 
-                    var mapCode = new ClassCodeBuilder(typeSymbol, "map");
-                    //实体操作
-                    var mapBuilder = new MapBuilder(typeSymbol, typeData);
-                    mapBuilder.CreateCode(mapCode);
+                    if (typeData.MappingAttr != null)
+                    {
+                        var mapCode = new ClassCodeBuilder(typeSymbol, "map");
+                        //实体操作
+                        var mapBuilder = new MapBuilder(typeSymbol, typeData);
+                        mapBuilder.CreateCode(mapCode);
+                        mapCode.WriteCode(context);
+                    }
 
-                    dtoCode.WriteCode(context);
-                    mapCode.WriteCode(context);
                     extCode.WriteCode(context);
                 }
                 catch (Exception ex)

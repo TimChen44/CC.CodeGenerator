@@ -11,10 +11,43 @@ namespace CC.CodeGenerator.Builder
 
         readonly ITypeSymbol TypeSymbol;
 
+        public List<PropertyData> DtoPropertyDatas { get; set; } = new List<PropertyData>();
+        public List<PropertyData> DtoForeignKeyPropertyDatas { get; set; } = new List<PropertyData>();
+        /// <summary>
+        /// 上下文名称
+        /// </summary>
+        public string ContextName { get; set; }
+        /// <summary>
+        /// 实体符号
+        /// </summary>
+        public ITypeSymbol EntitySymbol { get; set; }
+        /// <summary>
+        /// 实体属性
+        /// </summary>
+        public List<IPropertySymbol> EntityProperties { get; set; }
+        /// <summary>
+        /// 实体主键
+        /// </summary>
+        public List<IPropertySymbol> EntityKeyIds { get; set; }
+
+
         public DtoBuilder(ITypeSymbol typeSymbol, TypeData typeData)
         {
             TypeData = typeData;
             TypeSymbol = typeSymbol;
+
+            //获得DBContext的名字
+            ContextName = TypeData.DtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Context").Value.Value?.ToString();
+            //获得实体类型
+            EntitySymbol = TypeData.DtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Entity").Value.Value as ITypeSymbol;
+            //获得实体属性
+            EntityProperties = EntitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
+            //获得实体主键
+            EntityKeyIds = EntityProperties?.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
+
+            DtoPropertyDatas = TypeData.PropertyAssignDatas.Where(x => x.DtoIgnoreAttr == null).ToList();
+
+            DtoForeignKeyPropertyDatas = TypeData.PropertyReferenceDatas.Where(x => x.DtoForeignKeyAttr != null).ToList();
 
         }
 
@@ -24,10 +57,10 @@ namespace CC.CodeGenerator.Builder
 
             CopyFormDto(dtoBuilder);
 
-            if (string.IsNullOrWhiteSpace(TypeData.ContextName) == false && TypeData.EntitySymbol != null && TypeData.EntityKeyIds?.Count() > 0)
+            if (string.IsNullOrWhiteSpace(ContextName) == false && EntitySymbol != null && EntityKeyIds?.Count() > 0)
             {
                 dtoBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
-                dtoBuilder.AddUsing($"using {TypeData.EntitySymbol.ContainingNamespace.ToDisplayString()};");
+                dtoBuilder.AddUsing($"using {EntitySymbol.ContainingNamespace.ToDisplayString()};");
                 CopyToEntity(dtoBuilder);
 
                 New(dtoBuilder);
@@ -38,7 +71,7 @@ namespace CC.CodeGenerator.Builder
                 Delete(dtoBuilder);
 
                 extBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
-                extBuilder.AddUsing($"using {TypeData.EntitySymbol.ContainingNamespace.ToDisplayString()};");
+                extBuilder.AddUsing($"using {EntitySymbol.ContainingNamespace.ToDisplayString()};");
                 EntitySelectExtension(extBuilder);
             }
         }
@@ -46,7 +79,7 @@ namespace CC.CodeGenerator.Builder
         // 从Dto赋值值到自己
         private void CopyFormDto(ClassCodeBuilder dtoBuilder)
         {
-            var code = dtoBuilder.AssignCode("this", TypeData.DtoPropertyDatas, "dto", TypeData.DtoPropertyDatas, ";");
+            var code = dtoBuilder.AssignCode("this", DtoPropertyDatas, "dto", DtoPropertyDatas, ";");
             dtoBuilder.AddMethod(@$"
     /// <summary>
     /// 从Dto赋值值到自己
@@ -60,14 +93,14 @@ namespace CC.CodeGenerator.Builder
         // 自己的值复制到实体
         private void CopyToEntity(ClassCodeBuilder dtoBuilder)
         {
-            if (TypeData.EntitySymbol == null) return;
-            var code = dtoBuilder.AssignCode("entity", TypeData.EntityProperties, "this", TypeData.DtoPropertyDatas, ";");
+            if (EntitySymbol == null) return;
+            var code = dtoBuilder.AssignCode("entity", EntityProperties, "this", DtoPropertyDatas, ";");
 
             dtoBuilder.AddMethod(@$"    
     /// <summary>
     /// 自己的值复制到实体
     /// </summary>
-    public virtual void CopyToEntity({TypeData.EntitySymbol.Name} entity)
+    public virtual void CopyToEntity({EntitySymbol.Name} entity)
     {{
 {code}
     }}");
@@ -78,7 +111,7 @@ namespace CC.CodeGenerator.Builder
         private void New(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyInits = new List<string>();
-            foreach (var keyId in TypeData.EntityKeyIds)
+            foreach (var keyId in EntityKeyIds)
             {
                 if (keyId.Type.ToString() != "System.Guid") return;//如果主键中包含非Guid的对象，那么就不要生成初始化代码
                 keyInits.Add($"{keyId.Name} = Guid.NewGuid()");
@@ -101,7 +134,7 @@ namespace CC.CodeGenerator.Builder
         {
             List<string> keyParameters = new List<string>();
             List<string> keyCompares = new List<string>();
-            foreach (var keyId in TypeData.EntityKeyIds)
+            foreach (var keyId in EntityKeyIds)
             {
                 keyParameters.Add($"{keyId.Type.Name} {keyId.Name}");
                 keyCompares.Add($"x.{keyId.Name} == {keyId.Name}");
@@ -114,9 +147,9 @@ namespace CC.CodeGenerator.Builder
     /// 载入已有实体
     /// </summary>
     /// <returns></returns>
-    public static {TypeSymbol.Name}? LoadGen({TypeData.ContextName} context, {keyParameter})
+    public static {TypeSymbol.Name}? LoadGen({ContextName} context, {keyParameter})
     {{
-        return context.{TypeData.EntitySymbol.Name}.Where(x => {keyCompare}).To{TypeSymbol.Name}s().FirstOrDefault();
+        return context.{EntitySymbol.Name}.Where(x => {keyCompare}).To{TypeSymbol.Name}s().FirstOrDefault();
     }}";
             dtoBuilder.AddMethod(code);
         }
@@ -124,7 +157,7 @@ namespace CC.CodeGenerator.Builder
         private void FirstQueryable(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyCompares = new List<string>();
-            foreach (var keyId in TypeData.EntityKeyIds)
+            foreach (var keyId in EntityKeyIds)
             {
                 keyCompares.Add($"x.{keyId.Name} == this.{keyId.Name}");
             }
@@ -134,9 +167,9 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 主键检索
     /// </summary>
-    public IQueryable<{TypeData.EntitySymbol.Name}> FirstQueryable({TypeData.ContextName} context)
+    public IQueryable<{EntitySymbol.Name}> FirstQueryable({ContextName} context)
     {{
-        return context.{TypeData.EntitySymbol.Name}.Where(x => {keyCompare});
+        return context.{EntitySymbol.Name}.Where(x => {keyCompare});
     }}";
             dtoBuilder.AddMethod(code);
         }
@@ -148,7 +181,7 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 重新加载
     /// </summary>
-    public Result ReLoadGen({TypeData.ContextName} context)
+    public Result ReLoadGen({ContextName} context)
     {{
         var dto = FirstQueryable(context).To{TypeData.Name}s().FirstOrDefault();
         if (dto == null)
@@ -166,7 +199,7 @@ namespace CC.CodeGenerator.Builder
         {
             //赋值主键
             List<string> keyInits = new List<string>();
-            foreach (var keyId in TypeData.EntityKeyIds)
+            foreach (var keyId in EntityKeyIds)
             {
                 keyInits.Add($"{keyId.Name} = this.{keyId.Name}");
             }
@@ -174,7 +207,7 @@ namespace CC.CodeGenerator.Builder
 
             //赋值外键
             StringBuilder fkAssignCode = new StringBuilder();
-            foreach (var fkProp in TypeData.DtoForeignKeyPropertyDatas)
+            foreach (var fkProp in DtoForeignKeyPropertyDatas)
             {
                 var attr = fkProp.DtoForeignKeyAttr;
                 var foreignKey = attr.ConstructorArguments[0].Value;
@@ -190,12 +223,12 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 保存
     /// </summary>
-    public {TypeData.EntitySymbol.Name} SaveGen({TypeData.ContextName} context)
+    public {EntitySymbol.Name} SaveGen({ContextName} context)
     {{
         var entity = FirstQueryable(context).FirstOrDefault();
         if (entity == null)
         {{
-            entity = new {TypeData.EntitySymbol.Name}() {{ {keyInit} }};
+            entity = new {EntitySymbol.Name}() {{ {keyInit} }};
             context.Add(entity);
         }}
         CopyToEntity(entity);
@@ -210,7 +243,7 @@ namespace CC.CodeGenerator.Builder
         {
             List<string> keyParameters = new List<string>();
             List<string> keyCompares = new List<string>();
-            foreach (var keyId in TypeData.EntityKeyIds)
+            foreach (var keyId in EntityKeyIds)
             {
                 keyParameters.Add($"{keyId.Type.Name} {keyId.Name}");
                 keyCompares.Add($"x.{keyId.Name} == {keyId.Name}");
@@ -222,7 +255,7 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 删除，基于Dto
     /// </summary>
-    public Result DeleteGen({TypeData.ContextName} context)
+    public Result DeleteGen({ContextName} context)
     {{
         var entity = FirstQueryable(context).FirstOrDefault();
         if (entity == null)
@@ -236,9 +269,9 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 删除，基于主键
     /// </summary>
-    public static Result DeleteGen({TypeData.ContextName} context, {keyParameter})
+    public static Result DeleteGen({ContextName} context, {keyParameter})
     {{
-        var entity = context.{TypeData.EntitySymbol.Name}.Where(x => {keyCompare}).FirstOrDefault();
+        var entity = context.{EntitySymbol.Name}.Where(x => {keyCompare}).FirstOrDefault();
         if (entity == null)
         {{
             return new Result(""内容不存在"", false);
@@ -252,13 +285,13 @@ namespace CC.CodeGenerator.Builder
 
         private void EntitySelectExtension(ClassCodeBuilder extBuilder)
         {
-            var code = extBuilder.AssignCode("", TypeData.DtoPropertyDatas, "x", TypeData.EntityProperties, ",");
+            var code = extBuilder.AssignCode("", DtoPropertyDatas, "x", EntityProperties, ",");
 
             extBuilder.AddMethod(@$"
     /// <summary>
     /// EntitySelect
     /// </summary>
-    public static IQueryable<{TypeData.Name}> To{TypeData.Name}s(this IQueryable<{TypeData.EntitySymbol.Name}> query)
+    public static IQueryable<{TypeData.Name}> To{TypeData.Name}s(this IQueryable<{EntitySymbol.Name}> query)
     {{
         return query.Select(x => new {TypeData.Name}()
         {{

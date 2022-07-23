@@ -74,7 +74,7 @@ namespace CC.CodeGenerator.Test
                 Name = "Chen",
                 Age = 20,
             };
-            var people1Map = new People1Map(people2Map);
+            var people1Map = new People1Map(people2Map); 
 
             Assert.AreEqual(people1Map.PeopleId, people2Map.PeopleId);
             Assert.AreEqual(people1Map.Name, people2Map.Name);

@@ -8,13 +8,13 @@ namespace CC.CodeGenerator.Definition
     {
         public IPropertySymbol Property { get; set; }
         public string Name => Property?.Name;
-        public bool IsReadOnly => Property?.IsReadOnly ?? true;
-
+ 
         public AttributeData DtoIgnoreAttr { get; set; }
+
+        public AttributeData DtoForeignKeyAttr { get; set; }
 
         public AttributeData MappingIgnoreAttr { get; set; }
 
-        public AttributeData DtoForeignKeyAttr { get; set; }
 
         public PropertyData(LoadTool loadTool, IPropertySymbol prop)
         {
@@ -29,7 +29,6 @@ namespace CC.CodeGenerator.Definition
             {
                 DtoForeignKeyAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.DtoForeignKeyAttrSymbol, SymbolEqualityComparer.Default));
             }
-
 
             //检查Mapping是否忽略
             MappingIgnoreAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.MappingIgnoreAttrSymbol, SymbolEqualityComparer.Default));

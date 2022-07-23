@@ -11,10 +11,14 @@ namespace CC.CodeGenerator.Builder
 
         readonly ITypeSymbol TypeSymbol;
 
+        public List<PropertyData> MappingPropertyDatas { get; set; } = new List<PropertyData>();
+
         public MapBuilder(ITypeSymbol typeSymbol, TypeData typeData)
         {
             TypeData = typeData;
             TypeSymbol = typeSymbol;
+
+            MappingPropertyDatas = TypeData.PropertyAssignDatas.Where(x => x.MappingIgnoreAttr == null).ToList();
         }
 
         public void CreateCode(ClassCodeBuilder mapBuilder)
@@ -82,7 +86,7 @@ namespace CC.CodeGenerator.Builder
 
         private void CopyFrom(ClassCodeBuilder mapBuilder, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
         {
-            var codeCopyFrom = mapBuilder.AssignCode("this", TypeData.MappingPropertyDatas, "source", targetProperties, ";");
+            var codeCopyFrom = mapBuilder.AssignCode("this", MappingPropertyDatas, "source", targetProperties, ";");
 
             var code = $@"
     /// <summary>
