@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace CC.CodeGenerator.Builder
 {
-    public class DtoBuilder
+    public class DtoCreate
     {
         readonly TypeData TypeData;
 
@@ -32,7 +32,7 @@ namespace CC.CodeGenerator.Builder
         public List<IPropertySymbol> EntityKeyIds { get; set; }
 
 
-        public DtoBuilder(ITypeSymbol typeSymbol, TypeData typeData)
+        public DtoCreate(ITypeSymbol typeSymbol, TypeData typeData)
         {
             TypeData = typeData;
             TypeSymbol = typeSymbol;

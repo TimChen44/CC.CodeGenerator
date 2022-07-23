@@ -64,7 +64,7 @@ namespace CC.CodeGenerator
                     if (typeData.DtoAttr != null)
                     {
                         var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
-                        var dtoBuilder = new DtoBuilder(typeSymbol, typeData);
+                        var dtoBuilder = new DtoCreate(typeSymbol, typeData);
                         dtoBuilder.CreateCode(dtoCode, extCode);
                         dtoCode.WriteCode(context);
                     }
@@ -73,7 +73,7 @@ namespace CC.CodeGenerator
                     {
                         var mapCode = new ClassCodeBuilder(typeSymbol, "map");
                         //实体操作
-                        var mapBuilder = new MapBuilder(typeSymbol, typeData);
+                        var mapBuilder = new MapCreate(typeSymbol, typeData);
                         mapBuilder.CreateCode(mapCode);
                         mapCode.WriteCode(context);
                     }

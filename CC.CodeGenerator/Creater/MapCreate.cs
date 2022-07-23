@@ -5,7 +5,7 @@ using System.Text;
 
 namespace CC.CodeGenerator.Builder
 {
-    public class MapBuilder
+    public class MapCreate
     {
         readonly TypeData TypeData;
 
@@ -13,7 +13,7 @@ namespace CC.CodeGenerator.Builder
 
         public List<PropertyData> MappingPropertyDatas { get; set; } = new List<PropertyData>();
 
-        public MapBuilder(ITypeSymbol typeSymbol, TypeData typeData)
+        public MapCreate(ITypeSymbol typeSymbol, TypeData typeData)
         {
             TypeData = typeData;
             TypeSymbol = typeSymbol;
@@ -47,8 +47,6 @@ namespace CC.CodeGenerator.Builder
                 CopyTo(mapBuilder, targetSymbol, targetProperties);
                 CopyFrom(mapBuilder, targetSymbol, targetProperties);
             }
-
-
         }
 
         //构造复制
@@ -99,37 +97,6 @@ namespace CC.CodeGenerator.Builder
     }}";
             mapBuilder.AddConstructor(code);
         }
-
-
-        //            // 映射复制
-        //            private string MappingCopy(ClassCodeBuilder mapBuilder, ITypeSymbol classSymbol, IEnumerable<PropertyData> mappingProperties, ITypeSymbol targetSymbol, IEnumerable<IPropertySymbol> targetProperties)
-        //        {
-        //            if (targetSymbol == null) return null;
-
-        //            var codeCopyTo = mapBuilder.AssignCode("target", targetProperties, "this", mappingProperties, ";");
-        //            var codeCopyFrom = mapBuilder.AssignCode("this", mappingProperties, "source", targetProperties, ";");
-
-        //            return @$"
-        //    /// <summary>
-        //    /// 基于源赋值初始化
-        //    /// </summary>
-        //    public {classSymbol.Name}({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
-        //    {{
-        //        CopyFrom(source);
-        //    }}
-
-
-
-        //    /// <summary>
-        //    /// 从源赋值到自己
-        //    /// </summary>
-        //    public {classSymbol.Name} CopyFrom({targetSymbol.ContainingNamespace}.{targetSymbol.Name} source)
-        //    {{
-        //{codeCopyFrom}
-        //        return this;
-        //    }}";
-        //        }
-        //    }
 
     }
 }
