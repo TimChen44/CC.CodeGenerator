@@ -20,13 +20,14 @@ namespace CC.CodeGenerator.Test
             var context = new DemoContext();
 
             var company = context.Company.Where(x => x.CompanyId == new Guid("d7abc1aa-ee1a-466e-97ab-5499d7a9c186"))
-                 .Select(x => new CompanyDto(x) 
+                 .Select(x => new CompanyDto(x)
                  {
                      Address = x.Address.ToAddressDto(),
                      Personnels = x.Personnel.ToPersonnelDtos()
                  }).FirstOrDefault();
 
             Assert.IsNotNull(company);
+            Assert.AreNotEqual(company.CompanyId, Guid.Empty);
             Assert.IsNotNull(company.Address);
             Assert.IsNotNull(company.Personnels);
         }
@@ -93,7 +94,7 @@ namespace CC.CodeGenerator.Test
 
     }
 
-    [Dto(nameof(DemoContext),typeof(Company))]
+    [Dto(nameof(DemoContext), typeof(Company))]
     public partial class CompanyDto
     {
         public Guid CompanyId { get; set; }
@@ -106,7 +107,7 @@ namespace CC.CodeGenerator.Test
         public List<PersonnelDto> Personnels { get; set; }
     }
 
-    [Dto(nameof(DemoContext),typeof(Address))]
+    [Dto(nameof(DemoContext), typeof(Address))]
     public partial class AddressDto
     {
         public Guid AddressId { get; set; }
@@ -114,7 +115,7 @@ namespace CC.CodeGenerator.Test
         public string Name { get; set; }
     }
 
-    [Dto(nameof(DemoContext),typeof(Personnel))]
+    [Dto(nameof(DemoContext), typeof(Personnel))]
     public partial class PersonnelDto
     {
         public Guid PersonnelId { get; set; }
