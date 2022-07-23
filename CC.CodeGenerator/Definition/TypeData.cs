@@ -68,7 +68,7 @@ namespace CC.CodeGenerator.Definition
 
             if (MappingAttr != null)
             {
-                MappingPropertyDatas = PropertyDatas.Where(x => x.MappingIgnoreAttr != null).ToList();
+                MappingPropertyDatas = PropertyDatas.Where(x => x.MappingIgnoreAttr == null).ToList();
             }
         }
 

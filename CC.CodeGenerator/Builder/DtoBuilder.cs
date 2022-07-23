@@ -23,11 +23,13 @@ namespace CC.CodeGenerator.Builder
             if (TypeData.DtoAttr == null) return;
 
             CopyFormDto(dtoBuilder);
-            CopyToEntity(dtoBuilder);
 
             if (string.IsNullOrWhiteSpace(TypeData.ContextName) == false && TypeData.EntitySymbol != null && TypeData.EntityKeyIds?.Count() > 0)
             {
                 dtoBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
+                dtoBuilder.AddUsing($"using {TypeData.EntitySymbol.ContainingNamespace.ToDisplayString()};");
+                CopyToEntity(dtoBuilder);
+
                 New(dtoBuilder);
                 Load(dtoBuilder);
                 FirstQueryable(dtoBuilder);
@@ -35,6 +37,8 @@ namespace CC.CodeGenerator.Builder
                 Save(dtoBuilder);
                 Delete(dtoBuilder);
 
+                extBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
+                extBuilder.AddUsing($"using {TypeData.EntitySymbol.ContainingNamespace.ToDisplayString()};");
                 EntitySelectExtension(extBuilder);
             }
         }
