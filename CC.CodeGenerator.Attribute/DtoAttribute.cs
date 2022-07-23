@@ -8,6 +8,11 @@ namespace CC.CodeGenerator;
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public class DtoAttribute : Attribute
 {
+    public DtoAttribute(string context, Type entity)
+    {
+        Context = context;
+        Entity = entity;
+    }
     /// <summary>
     /// EF Core上下文名字
     /// </summary>

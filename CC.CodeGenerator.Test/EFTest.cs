@@ -22,8 +22,8 @@ namespace CC.CodeGenerator.Test
             var company = context.Company.Where(x => x.CompanyId == new Guid("d7abc1aa-ee1a-466e-97ab-5499d7a9c186"))
                  .Select(x => new CompanyDto(x)
                  {
-                     Address = new AddressDto(x.Address),
-                     Personnels = x.Personnel.Select(y => new PersonnelDto(y)).ToList()
+                     Address = x.Address.ToAddressDto(),
+                     Personnels = x.Personnel.ToPersonnelDtos()
                  }).FirstOrDefault();
 
             Assert.IsNotNull(company);
@@ -32,10 +32,34 @@ namespace CC.CodeGenerator.Test
         }
 
         [TestMethod]
-        public void Save()
+        public void CascadeSave()
         {
             var context = new DemoContext();
+            var company = CreateCompanyDto();
+            company.SaveGen(context);
 
+            Assert.AreEqual(context.Company.Local.Count, 1);
+            Assert.AreEqual(context.Address.Local.Count, 1);
+            Assert.AreEqual(context.Personnel.Local.Count, 2);
+        }
+
+        [TestMethod]
+        public void NonCascadingSave()
+        {
+            var context = new DemoContext();
+            var company = CreateCompanyDto();
+            company.SaveGen(context, false);
+            company.Address.SaveGen(context, false);
+            company.Personnels.ForEach(x => x.SaveGen(context, false));
+
+            Assert.AreEqual(context.Company.Local.Count, 1);
+            Assert.AreEqual(context.Address.Local.Count, 1);
+            Assert.AreEqual(context.Personnel.Local.Count, 2);
+        }
+
+
+        private CompanyDto CreateCompanyDto()
+        {
             var companyId = Guid.NewGuid();
             var company = new CompanyDto()
             {
@@ -64,20 +88,12 @@ namespace CC.CodeGenerator.Test
                     }
                 }
             };
-
-            company.SaveGen(context);
-            company.Address.SaveGen(context);
-            company.Personnels.ForEach(x => x.SaveGen(context));
-
-            Assert.AreEqual(context.Company.Local.Count, 1);
-            Assert.AreEqual(context.Address.Local.Count, 1);
-            Assert.AreEqual(context.Personnel.Local.Count, 2);
+            return company;
         }
-
 
     }
 
-    [Dto(Context = nameof(DemoContext), Entity = typeof(Company))]
+    [Dto(nameof(DemoContext),typeof(Company))]
     [Mapping(typeof(Company))]
     public partial class CompanyDto
     {
@@ -89,10 +105,9 @@ namespace CC.CodeGenerator.Test
         public AddressDto Address { get; set; }
 
         public List<PersonnelDto> Personnels { get; set; }
-
     }
 
-    [Dto(Context = nameof(DemoContext), Entity = typeof(Address))]
+    [Dto(nameof(DemoContext),typeof(Address))]
     [Mapping(typeof(Address))]
     public partial class AddressDto
     {
@@ -101,7 +116,7 @@ namespace CC.CodeGenerator.Test
         public string Name { get; set; }
     }
 
-    [Dto(Context = nameof(DemoContext), Entity = typeof(Personnel))]
+    [Dto(nameof(DemoContext),typeof(Personnel))]
     [Mapping(typeof(Personnel))]
     public partial class PersonnelDto
     {
@@ -110,4 +125,6 @@ namespace CC.CodeGenerator.Test
         public string Name { get; set; }
         public int? Age { get; set; }
     }
+
+
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace CC.CodeGenerator.Builder
 {
@@ -37,9 +38,9 @@ namespace CC.CodeGenerator.Builder
             TypeSymbol = typeSymbol;
 
             //获得DBContext的名字
-            ContextName = TypeData.DtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Context").Value.Value?.ToString();
+            ContextName = TypeData.DtoAttr.ConstructorArguments[0].Value?.ToString();
             //获得实体类型
-            EntitySymbol = TypeData.DtoAttr.NamedArguments.FirstOrDefault(x => x.Key == "Entity").Value.Value as ITypeSymbol;
+            EntitySymbol = TypeData.DtoAttr.ConstructorArguments[1].Value as ITypeSymbol;
             //获得实体属性
             EntityProperties = EntitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
             //获得实体主键
@@ -70,11 +71,18 @@ namespace CC.CodeGenerator.Builder
                 Save(dtoBuilder);
                 Delete(dtoBuilder);
 
+
                 extBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
                 extBuilder.AddUsing($"using {EntitySymbol.ContainingNamespace.ToDisplayString()};");
-                EntitySelectExtension(extBuilder);
+
+                var assignCode = extBuilder.AssignCode("", DtoPropertyDatas, "x", EntityProperties, ",");
+                ToDtoExtension(extBuilder, assignCode);
+                IQueryableToDtosExtension(extBuilder, assignCode);
+                ICollectionToDtosExtension(extBuilder, assignCode);
             }
         }
+
+        #region 数据库访问
 
         // 从Dto赋值值到自己
         private void CopyFormDto(ClassCodeBuilder dtoBuilder)
@@ -219,11 +227,31 @@ namespace CC.CodeGenerator.Builder
                     fkAssignCode.AppendLine($"        entity.{foreignKey} = this.{fkProp.Name}.{foreignKey};");
             }
 
+            //子节点保存
+            StringBuilder childSaveCode = new StringBuilder();
+            foreach (var prop in TypeData.PropertyReferenceDatas)
+            {
+                var typeSymbol = prop.Property.Type;
+
+                if (typeSymbol.OriginalDefinition.Name == "List")
+                {//如果是列表就循环保存
+                    var dtoSymbol = (typeSymbol as Microsoft.CodeAnalysis.INamedTypeSymbol)?.TypeArguments.FirstOrDefault();
+                    if (dtoSymbol.GetAttributes().Any(x => x.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoAttribute") == true)
+                    {
+                        childSaveCode.AppendLine($"            this.{prop.Name}?.ForEach(x => x.SaveGen(context));");
+                    }
+                }
+                else if (prop.Property.Type.GetAttributes().Any(x => x.AttributeClass.ToDisplayString() == "CC.CodeGenerator.DtoAttribute") == true)
+                {//如果是单个就独立保存
+                    childSaveCode.AppendLine($"            this.{prop.Name}?.SaveGen(context);");
+                }
+            }
+
             var code = @$"
     /// <summary>
     /// 保存
     /// </summary>
-    public {EntitySymbol.Name} SaveGen({ContextName} context)
+    public {EntitySymbol.Name} SaveGen({ContextName} context, bool cascadeSave = true)
     {{
         var entity = FirstQueryable(context).FirstOrDefault();
         if (entity == null)
@@ -233,6 +261,10 @@ namespace CC.CodeGenerator.Builder
         }}
         CopyToEntity(entity);
 {fkAssignCode}
+        if (cascadeSave == true)
+        {{
+{childSaveCode}
+        }}
         return entity;
     }}";
             dtoBuilder.AddMethod(code);
@@ -282,11 +314,24 @@ namespace CC.CodeGenerator.Builder
             dtoBuilder.AddMethod(code);
         }
 
+        #endregion 
 
-        private void EntitySelectExtension(ClassCodeBuilder extBuilder)
+        #region 扩展函数
+
+        private void ToDtoExtension(ClassCodeBuilder extBuilder, StringBuilder code)
         {
-            var code = extBuilder.AssignCode("", DtoPropertyDatas, "x", EntityProperties, ",");
+            extBuilder.AddMethod(@$"
+    public static {TypeData.Name} To{TypeData.Name}(this {EntitySymbol.Name} x)
+    {{
+        return new {TypeData.Name}()
+        {{
+{code}
+        }};
+    }}");
+        }
 
+        private void IQueryableToDtosExtension(ClassCodeBuilder extBuilder, StringBuilder code)
+        {
             extBuilder.AddMethod(@$"
     /// <summary>
     /// EntitySelect
@@ -299,10 +344,22 @@ namespace CC.CodeGenerator.Builder
         }});
     }}
 ");
-
         }
 
-    }
+        private void ICollectionToDtosExtension(ClassCodeBuilder extBuilder, StringBuilder code)
+        {
+            extBuilder.AddMethod(@$"
+    public static List<{TypeData.Name}> To{TypeData.Name}s(this ICollection<{EntitySymbol.Name}> query)
+    {{
+        return query.Select(x => new {TypeData.Name}()
+        {{
+{code}
+        }}).ToList();
+    }}");
+        }
 
+        #endregion
+
+    }
 
 }

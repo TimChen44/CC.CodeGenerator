@@ -113,7 +113,7 @@ namespace CC.CodeGenerator.Test
     }
 
 
-    [Dto(Context = nameof(DemoContext), Entity = typeof(CompanyCertificate))]
+    [Dto(nameof(DemoContext), typeof(CompanyCertificate))]
     public partial class CompanyCertificateDto
     {
         public Guid CompanyCertificateId { get; set; }
