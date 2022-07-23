@@ -10,11 +10,6 @@ namespace CC.CodeGenerator.Definition
         public string Name => Property?.Name;
         public bool IsReadOnly => Property?.IsReadOnly ?? true;
 
-        /// <summary>
-        /// 是否允许赋值，就是可以在等号左边
-        /// </summary>
-        public bool AllowAssign { get; set; }
-
         public AttributeData DtoIgnoreAttr { get; set; }
 
         public AttributeData MappingIgnoreAttr { get; set; }
@@ -27,10 +22,6 @@ namespace CC.CodeGenerator.Definition
 
             //查找属性
             var attrs = Property.GetAttributes();
-
-            //判断是否可以放在等号左边
-            AllowAssign = (Property.Type.IsValueType == true || Property.Type?.MetadataName == "String") && Property.IsReadOnly == false;
-
 
             //检查Dto是否忽略
             DtoIgnoreAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.DtoIgnoreAttrSymbol, SymbolEqualityComparer.Default));

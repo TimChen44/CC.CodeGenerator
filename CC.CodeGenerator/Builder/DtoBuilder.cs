@@ -174,7 +174,7 @@ namespace CC.CodeGenerator.Builder
 
             //赋值外键
             StringBuilder fkAssignCode = new StringBuilder();
-            foreach (var fkProp in TypeData.DtoPropertyDatas.Where(x => x.DtoForeignKeyAttr != null))
+            foreach (var fkProp in TypeData.DtoForeignKeyPropertyDatas)
             {
                 var attr = fkProp.DtoForeignKeyAttr;
                 var foreignKey = attr.ConstructorArguments[0].Value;

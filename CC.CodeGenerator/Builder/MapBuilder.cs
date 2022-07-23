@@ -66,7 +66,7 @@ namespace CC.CodeGenerator.Builder
             //目标对象中包含MappingIgnore对象，就不进行覆盖
             var tProperties = targetProperties.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "CC.CodeGenerator.MappingIgnoreAttribute") == false);
 
-            var codeCopyTo = mapBuilder.AssignCode("target", tProperties, "this", TypeData.PropertyDatas, ";");
+            var codeCopyTo = mapBuilder.AssignCode("target", tProperties, "this", TypeData.PropertyAssignDatas, ";");
 
             var code = $@"
     /// <summary>

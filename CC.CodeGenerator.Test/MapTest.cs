@@ -32,7 +32,7 @@ namespace CC.CodeGenerator.Test
             people1Map.CopyTo(people3Map);
 
             Assert.AreEqual(people1Map.CityTitle, people3Map.CityTitle);
-            Assert.AreEqual(people1Map.Disply, people3Map.Disply);
+            Assert.AreNotEqual(people1Map.Disply, people3Map.Disply);
         }
 
 

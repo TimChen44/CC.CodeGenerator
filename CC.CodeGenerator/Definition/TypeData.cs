@@ -10,11 +10,14 @@ namespace CC.CodeGenerator.Definition
 
         private readonly ITypeSymbol TypeSymbol;
         public string Name => TypeSymbol?.Name;
-        public List<PropertyData> PropertyDatas { get; set; } = new List<PropertyData>();
-
+        //可以用于赋值的属性
+        public List<PropertyData> PropertyAssignDatas { get; set; } = new List<PropertyData>();
+        //不能用于赋值的引用类型
+        public List<PropertyData> PropertyReferenceDatas { get; set; } = new List<PropertyData>();
 
         public AttributeData DtoAttr { get; set; }
         public List<PropertyData> DtoPropertyDatas { get; set; } = new List<PropertyData>();
+        public List<PropertyData> DtoForeignKeyPropertyDatas { get; set; } = new List<PropertyData>();
         /// <summary>
         /// 上下文名称
         /// </summary>
@@ -49,7 +52,11 @@ namespace CC.CodeGenerator.Definition
             foreach (var prop in props)
             {
                 var propData = new PropertyData(loadTool, prop);
-                PropertyDatas.Add(propData);
+
+                if ((prop.Type.IsValueType == true || prop.Type?.MetadataName == "String") && prop.IsReadOnly == false)
+                    PropertyAssignDatas.Add(propData);
+                else if (prop.Type.IsReferenceType)
+                    PropertyReferenceDatas.Add(propData);
             }
 
             if (DtoAttr != null)
@@ -63,12 +70,14 @@ namespace CC.CodeGenerator.Definition
                 //获得实体主键
                 EntityKeyIds = EntityProperties?.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
 
-                DtoPropertyDatas = PropertyDatas.Where(x => x.DtoIgnoreAttr == null).ToList();
+                DtoPropertyDatas = PropertyAssignDatas.Where(x => x.DtoIgnoreAttr == null).ToList();
+
+                DtoForeignKeyPropertyDatas = PropertyReferenceDatas.Where(x => x.DtoForeignKeyAttr != null).ToList();
             }
 
             if (MappingAttr != null)
             {
-                MappingPropertyDatas = PropertyDatas.Where(x => x.MappingIgnoreAttr == null).ToList();
+                MappingPropertyDatas = PropertyAssignDatas.Where(x => x.MappingIgnoreAttr == null).ToList();
             }
         }
 
