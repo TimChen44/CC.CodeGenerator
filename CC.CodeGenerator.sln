@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.CodeGenerator.Demo.Blazo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.CodeGenerator.Demo.NotifyPropertyChanged", "CC.CodeGenerator.Demo.NotifyPropertyChanged\CC.CodeGenerator.Demo.NotifyPropertyChanged.csproj", "{CFA1AECB-9288-44C7-810A-6483BC2AB1EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.CodeGenerator.Attribute", "CC.CodeGenerator.Attribute\CC.CodeGenerator.Attribute.csproj", "{36F0D574-B11E-424C-A7D8-A0D782DA11AD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CC.CodeGenerator.Attribute", "CC.CodeGenerator.Attribute\CC.CodeGenerator.Attribute.csproj", "{36F0D574-B11E-424C-A7D8-A0D782DA11AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CC.CodeGenerator.Test", "CC.CodeGenerator.Test\CC.CodeGenerator.Test.csproj", "{6F5FC7D0-C31A-48D9-9B08-8AF4139542A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{36F0D574-B11E-424C-A7D8-A0D782DA11AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36F0D574-B11E-424C-A7D8-A0D782DA11AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36F0D574-B11E-424C-A7D8-A0D782DA11AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F5FC7D0-C31A-48D9-9B08-8AF4139542A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F5FC7D0-C31A-48D9-9B08-8AF4139542A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F5FC7D0-C31A-48D9-9B08-8AF4139542A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F5FC7D0-C31A-48D9-9B08-8AF4139542A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
