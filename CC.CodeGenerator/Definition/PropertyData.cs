@@ -15,7 +15,9 @@ namespace CC.CodeGenerator.Definition
         /// </summary>
         public bool AllowAssign { get; set; }
 
-        public bool IsIgnore { get; set; }
+        public AttributeData DtoIgnoreAttr { get; set; }
+
+        public AttributeData MappingIgnoreAttr { get; set; }
 
         public AttributeData DtoForeignKeyAttr { get; set; }
 
@@ -25,17 +27,22 @@ namespace CC.CodeGenerator.Definition
 
             //查找属性
             var attrs = Property.GetAttributes();
-            //检查是否忽略
-            IsIgnore = attrs.Any(x => x.AttributeClass.Equals(loadTool.DtoIgnoreAttrSymbol, SymbolEqualityComparer.Default));
-            if (IsIgnore) return;
 
             //判断是否可以放在等号左边
             AllowAssign = (Property.Type.IsValueType == true || Property.Type?.MetadataName == "String") && Property.IsReadOnly == false;
 
+
+            //检查Dto是否忽略
+            DtoIgnoreAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.DtoIgnoreAttrSymbol, SymbolEqualityComparer.Default));
             if (Property.Type.IsReferenceType)//只有引用类型才需要判断是否是外键
             {
                 DtoForeignKeyAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.DtoForeignKeyAttrSymbol, SymbolEqualityComparer.Default));
             }
+
+
+            //检查Mapping是否忽略
+            MappingIgnoreAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.MappingIgnoreAttrSymbol, SymbolEqualityComparer.Default));
+
         }
     }
 }

@@ -50,19 +50,33 @@ namespace CC.CodeGenerator
             //创建Dto扩展
             foreach (TypeDeclarationSyntax typeSyntax in receiver.CandidateClasses)
             {
-                //获得类的类型符号,如果无法获得，就跳出
-                if (compilation.GetSemanticModel(typeSyntax.SyntaxTree).GetDeclaredSymbol(typeSyntax) is not ITypeSymbol typeSymbol) return;
+                try
+                {
+                    //获得类的类型符号,如果无法获得，就跳出
+                    if (compilation.GetSemanticModel(typeSyntax.SyntaxTree).GetDeclaredSymbol(typeSyntax) is not ITypeSymbol typeSymbol) return;
 
-                var typeData = loadTool.CreateTypeData(typeSymbol);
+                    var typeData = loadTool.CreateTypeData(typeSymbol);
 
-                //扩展函数
-                var extBuilder = new ExtBuilder(typeSymbol,"ext", typeData);
-                context.AddSource(extBuilder.FileName, extBuilder.SourceText);
+                    var dtoCode = new ClassCodeBuilder(typeSymbol, "dto");
+                    var extCode = new ClassCodeBuilder(typeSymbol, "ext");
 
-                //实体操作
-                var dtoBuilder = new DtoBuilder(typeSymbol,"dto",typeData);
-                context.AddSource(dtoBuilder.FileName, dtoBuilder.SourceText);
+                    //扩展函数
+                    var dtoBuilder = new DtoBuilder(typeSymbol, typeData);
+                    dtoBuilder.CreateCode(dtoCode, extCode);
 
+                    var mapCode = new ClassCodeBuilder(typeSymbol, "map");
+                    //实体操作
+                    var mapBuilder = new MapBuilder(typeSymbol, typeData);
+                    mapBuilder.CreateCode(mapCode);
+
+                    dtoCode.WriteCode(context);
+                    mapCode.WriteCode(context);
+                    extCode.WriteCode(context);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
             }
 
         }

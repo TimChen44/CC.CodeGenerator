@@ -10,9 +10,11 @@ namespace CC.CodeGenerator.Definition
 
         private readonly ITypeSymbol TypeSymbol;
         public string Name => TypeSymbol?.Name;
+        public List<PropertyData> PropertyDatas { get; set; } = new List<PropertyData>();
+    
 
-   
         public AttributeData DtoAttr { get; set; }
+        public List<PropertyData> DtoPropertyDatas { get; set; } = new List<PropertyData>();
         /// <summary>
         /// 上下文名称
         /// </summary>
@@ -32,14 +34,22 @@ namespace CC.CodeGenerator.Definition
 
    
         public AttributeData MappingAttr { get; set; }
+        public List<PropertyData> MappingPropertyDatas { get; set; } = new List<PropertyData>();
 
-        public List<PropertyData> PropertyDatas { get; set; } = new List<PropertyData>();
-        public List<IPropertySymbol> Properties { get; set; } = new List<IPropertySymbol>();
 
         public TypeData(LoadTool loadTool, ITypeSymbol typeSymbol)
         {
             LoadTool = loadTool;
             TypeSymbol = typeSymbol;
+
+            //类中的属性，使用延迟初始化，如果没有对应的特性就免去此处的反射操作优化性能
+            var props = typeSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
+            foreach (var prop in props)
+            {
+                var propData = new PropertyData(loadTool, prop);
+                PropertyDatas.Add(propData);
+            }
+
 
             //读取类的特性
             var attrs = typeSymbol.GetAttributes();
@@ -56,22 +66,16 @@ namespace CC.CodeGenerator.Definition
                 EntityProperties = EntitySymbol?.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
                 //获得实体主键
                 EntityKeyIds = EntityProperties?.Where(x => x.GetAttributes().Any(y => y.AttributeClass.ToDisplayString() == "System.ComponentModel.DataAnnotations.KeyAttribute")).ToList();
+
+                DtoPropertyDatas = PropertyDatas.Where(x => x.DtoIgnoreAttr != null).ToList();
             }
 
             //读取映射配置
             MappingAttr = attrs.FirstOrDefault(x => x.AttributeClass.Equals(loadTool.MappingAttrSymbol, SymbolEqualityComparer.Default));
-
-
-            //类中的属性，使用延迟初始化，如果没有对应的特性就免去此处的反射操作优化性能
-            var props = typeSymbol.GetMembers().Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().ToList();
-            foreach (var prop in props)
+            if (MappingAttr!=null)
             {
-                var propData = new PropertyData(loadTool, prop);
-                if (propData.IsIgnore == true) continue;
-                Properties.Add(prop);
-                PropertyDatas.Add(propData);
+                MappingPropertyDatas = PropertyDatas.Where(x => x.MappingIgnoreAttr != null).ToList();
             }
-
         }
 
     }

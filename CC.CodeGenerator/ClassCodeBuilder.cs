@@ -30,12 +30,16 @@ namespace CC.CodeGenerator
             if (Usings.Contains(code.Trim())) return;
             Usings.Add(code);
         }
+        public void AddConstructor(string code)
+        {
+            Constructors.Add(code);
+        }
+
 
         public void AddMethod(string code)
         {
             Methods.Add(code);
         }
-
 
         public override string ToString()
         {
@@ -67,13 +71,39 @@ public partial {(IsStatic ? "static" : "")} {typeName} {TypeSymbol.Name}
 
         //名字
         public string ClassName { get; }
-        //文件名称
-        public string FileName => $"{TypeSymbol?.ContainingNamespace.ToDisplayString()}.{TypeSymbol?.Name}.{ClassName}.g.cs";
-        //代码文本
-        public SourceText SourceText => SourceText.From(this.ToString(), Encoding.UTF8);
 
+        /// <summary>
+        /// 写入代码
+        /// </summary>
+        /// <param name="context"></param>
+        public void WriteCode(GeneratorExecutionContext context)
+        {
+            if (Usings.Count > 0 && Methods.Count > 0 && Constructors.Count > 0)
+            {
+                context.AddSource($"{TypeSymbol?.ContainingNamespace.ToDisplayString()}.{TypeSymbol?.Name}.{ClassName}.g.cs",
+                    SourceText.From(this.ToString(), Encoding.UTF8));
+            }
+        }
 
         #region 公用方法
+
+        public StringBuilder AssignCode(string leftName, IEnumerable<PropertyData> leftProps,
+            string rightName, IEnumerable<PropertyData> rightProps, string separate)
+        {
+            return AssignCode(leftName, leftProps.Select(x => x.Property), rightName, rightProps.Select(x => x.Property), separate);
+        }
+
+        public StringBuilder AssignCode(string leftName, IEnumerable<PropertyData> leftProps,
+            string rightName, IEnumerable<IPropertySymbol> rightProps, string separate)
+        {
+            return AssignCode(leftName, leftProps.Select(x => x.Property), rightName, rightProps, separate);
+        }
+
+        public StringBuilder AssignCode(string leftName, IEnumerable<IPropertySymbol> leftProps,
+            string rightName, IEnumerable<PropertyData> rightProps, string separate)
+        {
+            return AssignCode(leftName, leftProps, rightName, rightProps.Select(x => x.Property), separate);
+        }
 
         /// <summary>
         /// 赋值代码

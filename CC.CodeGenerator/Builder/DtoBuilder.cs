@@ -11,37 +11,38 @@ namespace CC.CodeGenerator.Builder
 
         readonly ITypeSymbol TypeSymbol;
 
-        public DtoBuilder(ITypeSymbol typeSymbol, string classType, TypeData typeData)
+        public DtoBuilder(ITypeSymbol typeSymbol, TypeData typeData)
         {
             TypeData = typeData;
             TypeSymbol = typeSymbol;
 
         }
 
-
-        public string CreateCode(ClassCodeBuilder dtoBuilder, ClassCodeBuilder extBuilder)
+        public void CreateCode(ClassCodeBuilder dtoBuilder, ClassCodeBuilder extBuilder)
         {
-            dtoBuilder.AddMethod(CopyFormDto());
-            dtoBuilder.AddMethod(CopyToEntity());
+            if (TypeData.DtoAttr == null) return;
+
+            CopyFormDto(dtoBuilder);
+            CopyToEntity(dtoBuilder);
 
             if (string.IsNullOrWhiteSpace(TypeData.ContextName) == false && TypeData.EntitySymbol != null && TypeData.EntityKeyIds?.Count() > 0)
             {
                 dtoBuilder.AddUsing("using Microsoft.EntityFrameworkCore;");
-                dtoBuilder.AddMethod(New());
-                dtoBuilder.AddMethod(Load());
-                dtoBuilder.AddMethod(FirstQueryable());
-                dtoBuilder.AddMethod(ReLoad());
-                dtoBuilder.AddMethod(Save());
-                dtoBuilder.AddMethod(Delete());
+                New(dtoBuilder);
+                Load(dtoBuilder);
+                FirstQueryable(dtoBuilder);
+                ReLoad(dtoBuilder);
+                Save(dtoBuilder);
+                Delete(dtoBuilder);
+
+                EntitySelectExtension(extBuilder);
             }
-
-
         }
 
         // 从Dto赋值值到自己
         private void CopyFormDto(ClassCodeBuilder dtoBuilder)
         {
-            var code = dtoBuilder.AssignCode("this", TypeData.Properties, "dto", TypeData.Properties, ";");
+            var code = dtoBuilder.AssignCode("this", TypeData.DtoPropertyDatas, "dto", TypeData.DtoPropertyDatas, ";");
             dtoBuilder.AddMethod(@$"
     /// <summary>
     /// 从Dto赋值值到自己
@@ -53,34 +54,34 @@ namespace CC.CodeGenerator.Builder
         }
 
         // 自己的值复制到实体
-        private string CopyToEntity()
+        private void CopyToEntity(ClassCodeBuilder dtoBuilder)
         {
-            if (TypeData.EntitySymbol == null) return null;
-            var code = AssignCode("entity", TypeData.EntityProperties, "this", TypeData.Properties, ";");
+            if (TypeData.EntitySymbol == null) return;
+            var code = dtoBuilder.AssignCode("entity", TypeData.EntityProperties, "this", TypeData.DtoPropertyDatas, ";");
 
-            return @$"    
+            dtoBuilder.AddMethod(@$"    
     /// <summary>
     /// 自己的值复制到实体
     /// </summary>
     public virtual void CopyToEntity({TypeData.Name} entity)
     {{
 {code}
-    }}";
+    }}");
 
         }
 
         //新对象
-        private string New()
+        private void New(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyInits = new List<string>();
             foreach (var keyId in TypeData.EntityKeyIds)
             {
-                if (keyId.Type.ToString() != "System.Guid") return "";//如果主键中包含非Guid的对象，那么就不要生成初始化代码
+                if (keyId.Type.ToString() != "System.Guid") return;//如果主键中包含非Guid的对象，那么就不要生成初始化代码
                 keyInits.Add($"{keyId.Name} = Guid.NewGuid()");
             }
             var keyInit = keyInits.Aggregate((a, b) => a + ", " + b);
 
-            return @$"
+            var code = @$"
     /// <summary>
     /// 创建新实体[模拟工厂模式]
     /// </summary>
@@ -89,9 +90,10 @@ namespace CC.CodeGenerator.Builder
     {{
         return new {TypeSymbol.Name}() {{ {keyInit} }};
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
-        private string Load()
+        private void Load(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyParameters = new List<string>();
             List<string> keyCompares = new List<string>();
@@ -103,7 +105,7 @@ namespace CC.CodeGenerator.Builder
             var keyParameter = keyParameters.Aggregate((a, b) => a + ", " + b);
             var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
 
-            return @$"
+            var code = @$"
     /// <summary>
     /// 载入已有实体
     /// </summary>
@@ -112,9 +114,10 @@ namespace CC.CodeGenerator.Builder
     {{
         return context.{TypeData.EntitySymbol.Name}.Where(x => {keyCompare}).To{TypeSymbol.Name}s().FirstOrDefault();
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
-        private string FirstQueryable()
+        private void FirstQueryable(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyCompares = new List<string>();
             foreach (var keyId in TypeData.EntityKeyIds)
@@ -123,7 +126,7 @@ namespace CC.CodeGenerator.Builder
             }
             var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
 
-            return @$"
+            var code = @$"
     /// <summary>
     /// 主键检索
     /// </summary>
@@ -131,12 +134,13 @@ namespace CC.CodeGenerator.Builder
     {{
         return context.{TypeData.EntitySymbol.Name}.Where(x => {keyCompare});
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
         //ReLoad 重新加载
-        private string ReLoad()
+        private void ReLoad(ClassCodeBuilder dtoBuilder)
         {
-            return @$"
+            var code = @$"
     /// <summary>
     /// 重新加载
     /// </summary>
@@ -150,10 +154,11 @@ namespace CC.CodeGenerator.Builder
         CopyFormDto(dto);
         return Result.OK;
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
         //Save 保存
-        private string Save()
+        private void Save(ClassCodeBuilder dtoBuilder)
         {
             //赋值主键
             List<string> keyInits = new List<string>();
@@ -165,7 +170,7 @@ namespace CC.CodeGenerator.Builder
 
             //赋值外键
             StringBuilder fkAssignCode = new StringBuilder();
-            foreach (var fkProp in TypeData.PropertyDatas.Where(x => x.DtoForeignKeyAttr != null))
+            foreach (var fkProp in TypeData.DtoPropertyDatas.Where(x => x.DtoForeignKeyAttr != null))
             {
                 var attr = fkProp.DtoForeignKeyAttr;
                 var foreignKey = attr.ConstructorArguments[0].Value;
@@ -177,7 +182,7 @@ namespace CC.CodeGenerator.Builder
                     fkAssignCode.AppendLine($"        entity.{foreignKey} = this.{fkProp.Name}.{foreignKey};");
             }
 
-            return @$"
+            var code = @$"
     /// <summary>
     /// 保存
     /// </summary>
@@ -193,10 +198,11 @@ namespace CC.CodeGenerator.Builder
 {fkAssignCode}
         return entity;
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
         //Delete 删除
-        private string Delete()
+        private void Delete(ClassCodeBuilder dtoBuilder)
         {
             List<string> keyParameters = new List<string>();
             List<string> keyCompares = new List<string>();
@@ -208,7 +214,7 @@ namespace CC.CodeGenerator.Builder
             var keyParameter = keyParameters.Aggregate((a, b) => a + ", " + b);
             var keyCompare = keyCompares.Aggregate((a, b) => a + " && " + b);
 
-            return @$"
+            var code = @$"
     /// <summary>
     /// 删除，基于Dto
     /// </summary>
@@ -236,14 +242,15 @@ namespace CC.CodeGenerator.Builder
         context.Remove(entity);
         return Result.OK;
     }}";
+            dtoBuilder.AddMethod(code);
         }
 
 
-        private string EntitySelectExtension()
+        private void EntitySelectExtension(ClassCodeBuilder extBuilder)
         {
-            var code = AssignCode("", TypeData.Properties, "x", TypeData.EntityProperties, ",");
+            var code = extBuilder.AssignCode("", TypeData.DtoPropertyDatas, "x", TypeData.EntityProperties, ",");
 
-            return @$"
+            extBuilder.AddMethod(@$"
 public static class {TypeData.Name}Extension
 {{
     /// <summary>
@@ -256,7 +263,7 @@ public static class {TypeData.Name}Extension
 {code}
         }});
     }}
-}}";
+}}");
 
         }
 
