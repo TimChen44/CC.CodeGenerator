@@ -49,10 +49,14 @@ namespace CC.CodeGenerator.Test
             var dto = CompanyCertificateDto.NewGen();
             Assert.IsNotNull(dto);
             Assert.AreNotEqual(dto.CompanyCertificateId, Guid.Empty);
+
+            var dtoResult = CompanyCertificateDto.NewResultGen();
+            Assert.IsNotNull(dtoResult);
+            Assert.AreNotEqual(dtoResult.Data.CompanyCertificateId, Guid.Empty);
         }
 
         [TestMethod]
-        public void LoadGen()
+        public void SLRD()
         {
             var dto = SaveGen();
             LoadGen(dto);
@@ -82,6 +86,10 @@ namespace CC.CodeGenerator.Test
             var context = new DemoContext();
             var loadDto = CompanyCertificateDto.LoadGen(context, dto.CompanyCertificateId);
             AreEqualDto(dto, loadDto);
+            var loadResultDto = CompanyCertificateDto.LoadResultGen(context, dto.CompanyCertificateId);
+            AreEqualDto(dto, loadResultDto.Data);
+            var loadNullResultDto = CompanyCertificateDto.LoadResultGen(context, Guid.NewGuid());
+            Assert.AreEqual(loadNullResultDto.IsOK,false);
         }
 
         private void ReLoadGen(CompanyCertificateDto dto)

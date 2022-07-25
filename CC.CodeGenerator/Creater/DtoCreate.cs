@@ -134,6 +134,15 @@ namespace CC.CodeGenerator.Builder
     public static {TypeSymbol.Name} NewGen()
     {{
         return new {TypeSymbol.Name}() {{ {keyInit} }};
+    }}
+
+    /// <summary>
+    /// 创建新实体并反馈Result
+    /// </summary>
+    /// <returns></returns>
+    public static Result<{TypeSymbol.Name}> NewResultGen()
+    {{
+        return new Result<{TypeSymbol.Name}>(new {TypeSymbol.Name}() {{ {keyInit} }});
     }}";
             dtoBuilder.AddMethod(code);
         }
@@ -158,6 +167,17 @@ namespace CC.CodeGenerator.Builder
     public static {TypeSymbol.Name}? LoadGen({ContextName} context, {keyParameter})
     {{
         return context.{EntitySymbol.Name}.Where(x => {keyCompare}).To{TypeSymbol.Name}s().FirstOrDefault();
+    }}
+
+    /// <summary>
+    /// 载入已有实体并反馈Result
+    /// </summary>
+    /// <returns></returns>
+    public static Result<{TypeSymbol.Name}> LoadResultGen({ContextName} context, {keyParameter})
+    {{
+        var entity = context.{EntitySymbol.Name}.Where(x => {keyCompare}).To{TypeSymbol.Name}s().FirstOrDefault();
+        if (entity==null) return new Result<{TypeSymbol.Name}>(""内容不存在"", false);
+        else return new Result<{TypeSymbol.Name}>(entity);
     }}";
             dtoBuilder.AddMethod(code);
         }
@@ -287,29 +307,29 @@ namespace CC.CodeGenerator.Builder
     /// <summary>
     /// 删除，基于Dto
     /// </summary>
-    public Result DeleteGen({ContextName} context)
+    public bool DeleteGen({ContextName} context)
     {{
         var entity = FirstQueryable(context).FirstOrDefault();
         if (entity == null)
         {{
-            return new Result(""内容不存在"", false);
+            return false;
         }}
         context.Remove(entity);
-        return Result.OK;
+        return true;
     }}
 
     /// <summary>
     /// 删除，基于主键
     /// </summary>
-    public static Result DeleteGen({ContextName} context, {keyParameter})
+    public static bool DeleteGen({ContextName} context, {keyParameter})
     {{
         var entity = context.{EntitySymbol.Name}.Where(x => {keyCompare}).FirstOrDefault();
         if (entity == null)
         {{
-            return new Result(""内容不存在"", false);
+            return false;
         }}
         context.Remove(entity);
-        return Result.OK;
+        return true;
     }}";
             dtoBuilder.AddMethod(code);
         }
