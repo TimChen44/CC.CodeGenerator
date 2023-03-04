@@ -22,8 +22,6 @@ namespace CC.CodeGenerator.DemoTest
         /// 地址
         /// </summary> 
         public string Address { get; set; }
-
-
     }
 
 }

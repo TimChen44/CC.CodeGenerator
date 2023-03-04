@@ -290,6 +290,18 @@ public static class {DtoClass.Name}Extension
             var subInit = DtoClass.SubDtos.Select(x => $"            {x.Name} = new List<{x.Type.Name}>(), ")
                 .Aggregate("\r\n");
 
+            //TODO: 级联KeyId初始化存尚存一些问题
+            //StringBuilder pkeyAssign = new StringBuilder();
+            //StringBuilder pkeyAssign = new StringBuilder();
+
+            //foreach (var item in DtoClass.SubDtos)
+            //{
+            //    if (DtoClass.ParentDtos.Any(x=>x.Name== item.Name)==false ) continue;
+            //    pkeyAssign.AppendLine($@"        dto.{item.Name}" = )
+
+            //}
+
+
             var code = @$"
     /// <summary>
     /// 创建新实体[模拟工厂模式]
@@ -297,12 +309,14 @@ public static class {DtoClass.Name}Extension
     /// <returns></returns>
     public static {DtoClass.Name} NewGen()
     {{
-        return new {DtoClass.Name}() 
+        var dto = new {DtoClass.Name}() 
         {{ 
 {keyInit}
 {parentInit}
 {subInit}
         }};
+        return dto;
+        
     }}
 
     /// <summary>
@@ -311,12 +325,7 @@ public static class {DtoClass.Name}Extension
     /// <returns></returns>
     public static Result<{DtoClass.Name}> NewResultGen()
     {{
-        return new Result<{DtoClass.Name}>(new {DtoClass.Name}()
-        {{ 
-{keyInit}
-{parentInit}
-{subInit}
-        }});
+        return new Result<{DtoClass.Name}>(NewGen());
     }}";
             dtoBuilder.AddMethod(code);
         }

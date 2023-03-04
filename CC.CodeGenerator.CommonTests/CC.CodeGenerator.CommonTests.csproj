@@ -22,4 +22,8 @@
 	  </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CC.CodeGenerator.Common\CC.CodeGenerator.Common.csproj" />
+  </ItemGroup>
+
 </Project>

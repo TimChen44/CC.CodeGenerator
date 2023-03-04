@@ -5,9 +5,6 @@
 - 代码实时生成，无需额外操作，立即生效
 - 开发过程中生成的代码，执行性能比运行时反射更有效率
 
-### 效果演示
-
-![GIF 2022-1-21 13-44-18](https://user-images.githubusercontent.com/7581981/150472966-345d633e-4731-437b-9a8f-691b09133a7c.gif)
 
 ### 视频介绍
 
@@ -16,8 +13,6 @@ https://www.bilibili.com/video/BV1a3411Y7xb?share_source=copy_web
 https://www.bilibili.com/video/BV14m4y1S7Ne?share_source=copy_web
 
 # 使用方法
-
-## 1. 安装
 
 ### 安装代码生成包以及支持包
 ```powershell
@@ -30,345 +25,509 @@ Install-Package CC.NetCore
 ### Program.cs中添加全局引用
 ```csharp
 global using CC.CodeGenerator;
+global CC.Core
 ```
 
-## 2. 对象Mapping
+# 功能介绍
 
-Mapping
-> 启用对象映射，可指定多个映射对象
+### 多表级联增删改查
 
-MappingIgnore
-> 忽略不需要的属性
+> 以下三个方法功能和性能是等效的
 
 ```csharp
-[Mapping(typeof(People2Map), typeof(People3Map))]
-public partial class People1Map
-{
-    public Guid PeopleId { get; set; }
-    public string UserName { get; set; }
-    public string City { get; set; }
-    public string Disply => $"{UserName}";
-}
+    /// <summary>
+    /// 级联查询(原始写法)
+    /// </summary>
+    [TestMethod]
+    public void SelectStandardOrigin()
+    {
+        var context = new DemoContext();
 
-public class People2Map
-{
-    public Guid PeopleId { get; set; }
-    public string UserName { get; set; }
-}
-
-public class People3Map
-{
-    public string City { get; set; }
-
-}
-```
-
-进行对象之间的赋值
-
-```csharp
-//初始新的Dto
-var people1Map = new People1Map() { PeopleId=Guid.NewGuid(),UserName="Tim" };
-var people2Map = new People2Map();
-var people3Map = new People3Map() { City="ShangHai"};
-
-//复制到对象
-people1Map.CopyTo(people2Map);
-
-//从对象复制来
-people1Map.CopyFrom(people3Map);
-
-//从别的对象初始化
-var people4Map = new People1Map(people2Map);
-
-
-```
-## 3. EF检索中Mapping
-
-简化在EF的Select中的无意义赋值代码，并能从多个对象汇获取数据
-
-### 数据库表关系图
-![DB](https://user-images.githubusercontent.com/7581981/167283026-aa693bab-2340-4348-a314-acc24e83b4e1.png)
-
-### 返回的对象增加Mapping特性
-```csharp
-[Mapping(typeof(People), typeof(City))]
-public partial class PeopleViewDto
-{
-    public Guid PeopleId { get; set; }
-    public string Name { get; set; }
-    public string CityTitle { get; set; }
-    public List<SkillViewDto> SkillViews { get; set; }
-}
-
-[Mapping(typeof(Skill))]
-public partial class SkillViewDto
-{
-    public Guid SkillId { get; set; }
-    public Guid PeopleId { get; set; }
-}
-```
-
-### 使用示例
-
-**☹️常规代码**
-```csharp
-var PeopleViewDtos1 = context.People
-    .Select(x => new PeopleViewDto(x)
-        {
-            CityTitle = x.City.CityTitle,
-            SkillViews = x.Skill.Select(y => new SkillViewDto()
+        var personne = context.Personnel.Where(x => x.PersonnelId == new Guid("92c26f2e-1dda-4c0b-9279-a4a66560d4be"))
+            .Select(x => new PersonnelDto()
             {
-                PeopleId=y.PeopleId,
-                SkillId=y.SkillId,
-                SkillName=y.SkillName,
-            }).ToList()
-        })
-    .ToList();
-```
+                PersonnelId = x.PersonnelId,
+                CompanyId = x.CompanyId,
+                Name = x.Name,
+                Gender = x.Gender,
+                Birthday = x.Birthday,
+                IsJob = x.IsJob,
 
-**😁简化代码**
-```csharp
+                CompanyDto = new CompanyDto()
+                {
+                    CompanyId = x.Company.CompanyId,
+                    Title = x.Company.Title,
+                    Address = x.Company.Address,
+                },
 
+                AchievementsDtos = x.Achievements.Select(x => new AchievementsDto()
+                {
+                    AchievementsId = x.AchievementsId,
+                    PersonnelId = x.PersonnelId,
+                    Year = x.Year,
+                    Level = x.Level,
+                }).ToList(),
+            }).FirstOrDefault();
+    }
 
-var PeopleViewDtos2 = context.People
-    .Select(x => new PeopleViewDto(x) //赋值直接通过对象构造完成
+    /// <summary>
+    /// 级联查询(精简写法)
+    /// </summary>
+    [TestMethod]
+    public void SelectStandardSingle()
+    {
+        var context = new DemoContext();
+
+        var personne = context.Personnel.Where(x => x.PersonnelId == new Guid("92c26f2e-1dda-4c0b-9279-a4a66560d4be"))
+             .Select(x => new PersonnelDto(x)
+             {
+                 CompanyDto = x.Company.ToCompanyDto(),
+                 AchievementsDtos = x.Achievements.ToAchievementsDtos(),
+             }).FirstOrDefault();
+
+        Assert.IsNotNull(personne);
+        Assert.AreNotEqual(personne.PersonnelId, Guid.Empty);
+        Assert.IsNotNull(personne.CompanyDto);
+        Assert.IsNotNull(personne.AchievementsDtos);
+    }
+
+    /// <summary>
+    /// 级联查询(极简写法)
+    /// </summary>
+    [TestMethod]
+    public void SelectEasySingle()
+    {
+        var context = new DemoContext();
+
+        var personne = PersonnelDto.LoadGen(context, new Guid("92c26f2e-1dda-4c0b-9279-a4a66560d4be"));
+
+        Assert.IsNotNull(personne);
+        Assert.AreNotEqual(personne.PersonnelId, Guid.Empty);
+        Assert.IsNotNull(personne.CompanyDto);
+        Assert.IsNotNull(personne.AchievementsDtos);
+    }
+
+    /// <summary>
+    /// 级联查询多条
+    /// </summary>
+    [TestMethod]
+    public void SelectList()
+    {
+        var context = new DemoContext();
+
+        var personnes = context.Personnel
+            .Where(x => x.IsJob == true && (x.Company.Address == "上海" || x.Company.Address == "北京"))
+            .ToPersonnelDtos().ToList();
+
+        Assert.IsTrue(personnes.Count > 0);
+    }
+
+    /// <summary>
+    /// 级联操作
+    /// </summary>
+    [TestMethod]
+    public void CascadeSave()
+    {
+        var context = new DemoContext();
+
+        //模拟前端提交了新增或编辑的Dto
+        var personnel = CreatePersonnelDto();
+        //保存
+        personnel.SaveGen(context);
+        var saveResult = context.SaveChanges();
+        Assert.IsTrue(saveResult > 0);
+
+        //模拟修改了Dto进行保存
+        personnel.IsJob = false;
+        personnel.CompanyDto.Title = "公司改名";//编辑禁用时不会保存到数据库
+        personnel.CompanyDto.Address = "北京";
+
+        personnel.AchievementsDtos.Remove(personnel.AchievementsDtos.First(x => x.Year == 2020));
+        personnel.AchievementsDtos.Add(new AchievementsDto()
         {
-            SkillViews = x.Skill.Select(y => new SkillViewDto(y)).ToList()
+            AchievementsId = Guid.NewGuid(),
+            PersonnelId = personnel.PersonnelId,
+            Year = 2022,
+            Level = "S_CascadeSave",
+        });
+        //保存
+        personnel.SaveGen(context);
+        var updateResult = context.SaveChanges();
+        Assert.IsTrue(updateResult > 0);
+
+        //模拟删除Dto
+        personnel.DeleteGen(context);
+        var deleteResult = context.SaveChanges();
+        Assert.IsTrue(deleteResult > 0);
+    }
+
+
+    private PersonnelDto CreatePersonnelDto()
+    {
+        var personnelId = new Guid("10000101-db1e-40dc-8ef4-65e95ff5698f");
+        var personnel = new PersonnelDto()
+        {
+            PersonnelId = personnelId,
+            Name = "超人_CascadeSave",
+            Gender = "男",
+            IsJob = true,
+            Birthday = DateTime.Now,
+
+            CompanyDto = new CompanyDto()
+            {
+                CompanyId = new Guid("10000201-db1e-40dc-8ef4-65e95ff5698f"),
+                Title = "超越建筑公司_CascadeSave",
+                Address = "上海",
+            },
+            AchievementsDtos = new List<AchievementsDto>()
+            {
+                new AchievementsDto()
+                {
+                    AchievementsId=new Guid("10000301-db1e-40dc-8ef4-65e95ff5698f"),
+                    PersonnelId=personnelId,
+                    Year=2020,
+                    Level="A_CascadeSave"
+                },
+                    new AchievementsDto()
+                {
+                    AchievementsId= new Guid("10000302-db1e-40dc-8ef4-65e95ff5698f"),
+                    PersonnelId=personnelId,
+                    Year=2021,
+                    Level="B_CascadeSave"
+                }
+            }
+        };
+        return personnel;
+    }
+
+```
+
+### 单表级联增删改查
+
+```csharp
+        /// <summary>
+        /// 单表增删改查
+        /// </summary>
+        [TestMethod]
+        public void SLRD()
+        {
+            var dto = SaveGen();
+            LoadGen(dto);
+            ReLoadGen(dto);
+            DeleteGen(dto);
         }
-    .CopyFrom(x.City)) //通过级联CopyFrom函数可以从多个实体获得数据
-    .ToList();
+
+        /// <summary>
+        /// 构造CompanyDto对象，并保存
+        /// </summary>
+        /// <returns></returns>
+        private CompanyDto SaveGen()
+        {
+            var context = new DemoContext();
+            //保存
+            var newDto = new CompanyDto()
+            {
+                CompanyId = Guid.NewGuid(),
+                Title = "Tim",
+                Address = DateTime.Now.ToString(),
+            };
+            newDto.SaveGen(context);
+            var save = context.SaveChanges();
+            Assert.AreEqual(save, 1);
+            return newDto;
+        }
+
+        /// <summary>
+        /// 使用主键从数据库载入CompanyDto对象
+        /// </summary>
+        /// <param name="dto"></param>
+        private void LoadGen(CompanyDto dto)
+        {
+            var context = new DemoContext();
+            var loadDto = CompanyDto.LoadGen(context, dto.CompanyId);
+            AreEqualDto(dto, loadDto);
+
+            var loadResultDto = CompanyDto.LoadResultGen(context, dto.CompanyId);
+            AreEqualDto(dto, loadResultDto.Data);
+
+            var loadNullResultDto = CompanyDto.LoadResultGen(context, Guid.NewGuid());
+            Assert.AreEqual(loadNullResultDto.IsOK, false);
+        }
+
+        /// <summary>
+        /// 从数据库中更新CompanyDto对象中的内容
+        /// </summary>
+        /// <param name="dto"></param>
+        private void ReLoadGen(CompanyDto dto)
+        {
+            var context = new DemoContext();
+            var reLoadDto = new CompanyDto() { CompanyId = dto.CompanyId };
+            reLoadDto.ReLoadGen(context);
+            AreEqualDto(dto, reLoadDto);
+        }
+
+        /// <summary>
+        /// 从数据库删除CompanyDto
+        /// </summary>
+        /// <param name="dto"></param>
+        private void DeleteGen(CompanyDto dto)
+        {
+            var context = new DemoContext();
+            dto.DeleteGen(context);
+            var delete = context.SaveChanges();
+            Assert.AreEqual(delete, 1);
+            var loadDto = context.Company.FirstOrDefault(x => x.CompanyId == dto.CompanyId);
+            Assert.IsNull(loadDto);
+        }
+
+        private void AreEqualDto(CompanyDto s, CompanyDto t)
+        {
+            Assert.AreEqual(s.CompanyId, t.CompanyId);
+            Assert.AreEqual(s.Title, t.Title);
+            Assert.AreEqual(s.Address, t.Address);
+        }
 ```
 
-## 4. 服务注册及依赖注入代码自动创建
-
-Service
-> 自动创建服务注册代码，让Program更加清洁
-> - LifeCycle:自定义生命周期，默认Scoped
-
-AutoInject
-> 自动创建注入代码
-
-### Program.cs中标记注册位置
-```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-CC.CodeGenerator.AutoDI.AddServices(builder);//加入此行代码
-```
-
-### 使用示例
-
-**☹️常规代码**
-```csharp
-//Program.cs
-builder.Services.AddScoped<DemoService1>();
-builder.Services.AddScoped<DemoService2>();
-builder.Services.AddScoped<DemoService4>();
-
-//Service.cs
-public class DemoService1 { }
-
-public class DemoService2 { }
-
-public partial class DemoService4
-{
-    private readonly DemoService1 DemoService1;
-    private readonly DemoService2 DS2;
-
-    public DemoService4(DemoService1 injectDemoService1, DemoService2 injectDS2)
-    {
-        DemoService1 = injectDemoService1;
-        DS2 = injectDS2;
-    }
-}
-```
-
-**😁简化代码**
-```csharp
-//Program.cs
-CC.CodeGenerator.AutoDI.AddServices(builder);
-
-//Service.cs
-[Service] //通过特性实现服务注册
-public class DemoService1 { }
-
-[Service]
-public class DemoService2 { }
-
-[Service]
-[AutoInject(typeof(DemoService1))] //通过特性实现服务注入
-[AutoInject(typeof(DemoService2),"DS2")]
-public partial class DemoService4 { }
-```
-
-## 5. 增强数据交换对象及简化EF
-
-Dto
-> 增强实体特性，提供对象赋值，默认增删改查代码
-> - Context:上下文对象
-> - Entity:映射的EF实体
-
-Ignore
-> 忽略不需要的属性
-
-### 示例
+### 对象复制
 
 ```csharp
-[Dto(Context=nameof(DemoaContext),Entity =typeof(People))]
-public partial record PeopleDto
-{
-    public Guid PeopleId { get; set; }
-    public string UserName { get; set; }
-    public string City { get; set; }
-    [DtoIgnore]
-    public string Disply => $"{UserName}";
-}
-```
 
-### 示例
-
-```csharp
-var context = new DemoaContext();
-
-//创建Dto
-var secondDto = new PeopleDto() { City = "ShangHai" };
-
-//初始新的Dto
-var firstDto = PeopleDto.NewGen();
-
-//快速从Dto复制
-firstDto.CopyFormDto(secondDto);
-
-//EF快速Select
-var peopleEntityDtos = context.People.Where(x=>x.City == "ShangHai").ToPeopleDtos();
-
-//快速载入Dto
-var peopleEntityDto = PeopleDto.LoadGen(context, new Guid(""));
-
-//Dto复制到实体
-var peopleEntity = context.People.FirstOrDefault();
-peopleEntityDto.CopyToEntity(peopleEntity);
-
-//Dto重新载入
-peopleEntityDto.ReLoadGen(context);
-
-//Dto快速保存
-peopleEntityDto.City = "北京";
-peopleEntityDto.SaveGen(context);
-
-//Dto快速删除
-peopleEntityDto.DeleteGen(context);
-
-//主键快速删除
-PeopleDto.DeleteGen(context, new Guid("25fcf1e5-a47c-432a-b2c6-25a2a09a5e01"));
-
-//最后保存操作
-context.SaveChanges();
-```
-
-## 6. 自动创建选项代码
-
-AutoOption
-- FieldName
-> 选项字段名
-
-- Options
-> 可选项目,使用“代码:存储:显示”格式，采用换行或“;”分割，示例：
-> - 1:Option1:选项1
-> - 2:Option2:选项2
-
-### 示例
-
-```csharp
-    [AutoOption("Sex", @"
-Female:0:女
-Male:1:男
-")]
-    public partial class People
-    {
-    }
-```
-
-生成代码如下
-```csharp
-public partial class People
-{
-    public class ESex
-    {
-        [DisplayName("女")]
-        public static string Female { get; set; } = "0";
-        [DisplayName("男")]
-        public static string Male { get; set; } = "1";
-    }
-
-    public static List<OptionCore> ESexOption {get; } = new List<OptionCore>()
-    {
-        new OptionCore("0","女"),
-        new OptionCore("1","男"),
-    };
-
-    public static List<OptionCore> ESexFilter {get; } = new List<OptionCore>()
-    {
-        new OptionCore("","全部"),
-        new OptionCore("0","女"),
-        new OptionCore("1","男"),
-    };
-}
-
-```
-
-## 7. 自动实现INotifyPropertyChanged接口
-
-```csharp
-[AddNotifyPropertyChanged("Id", typeof(long), XmlSummary = "从类上创建属性")]
-partial class Demo0
-{
-    [AddNotifyPropertyChanged(XmlSummary = "从字段创建属性")]
-    private string _name;
-}
-```
-生成代码如下
-```csharp
-partial class Demo0  : INotifyPropertyChanged
-{
-    
-    #region 接口相关
-    
-    public event PropertyChangedEventHandler? PropertyChanged;
-    
-    private bool SetProperty<T>(ref T storage, T value , [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
-        storage = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-    
-    private void OnPropertyChanged(string? propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    
-    #endregion
-    
-    #region 生成的属性和字段
-
-    private long _id;
     /// <summary>
-    /// 从类上创建属性
+    /// 赋值：Dto=>Dto
     /// </summary>
-    public long Id
+    [TestMethod]
+    public void CopyFormDto()
     {
-        get => _id;
-        set => SetProperty(ref _id, value);
-    }
-    
-    /// <summary>
-    /// 从字段创建属性
-    /// </summary>
-    public string? Name
-    {
-        get => _name;
-        set => SetProperty(ref _name, value);
+        var s = new CompanyDto()
+        {
+            CompanyId = Guid.NewGuid(),
+            Title = "Tim",
+            Address = DateTime.Now.ToString(),
+        };
+
+        var t = new CompanyDto();
+        t.CopyFormDto(s);
+
+        AreEqualDto(s, t);
     }
 
-    #endregion
-}
+    /// <summary>
+    /// 赋值：Dto=>Entity
+    /// </summary>
+    [TestMethod]
+    public void CopyToEntity()
+    {
+        var s = new CompanyDto()
+        {
+            CompanyId = Guid.NewGuid(),
+            Title = "Tim",
+            Address = DateTime.Now.ToString(),
+        };
+
+        var t = new Company();
+        s.CopyTo(t);
+
+        Assert.AreEqual(s.CompanyId, t.CompanyId);
+        Assert.AreEqual(s.Title, t.Title);
+        Assert.AreEqual(s.Address, t.Address);
+    }
+
+    /// <summary>
+    /// 创建新的CompanyDto
+    /// </summary>
+    [TestMethod]
+    public void NewCompanyDtoGen()
+    {
+        var dto = CompanyDto.NewGen();
+        Assert.IsNotNull(dto);
+        Assert.AreNotEqual(dto.CompanyId, Guid.Empty);
+
+        var dtoResult = CompanyDto.NewResultGen();
+        Assert.IsNotNull(dtoResult);
+        Assert.AreNotEqual(dtoResult?.Data?.CompanyId, Guid.Empty);
+    }
+
+    private void AreEqualDto(CompanyDto s, CompanyDto t)
+    {
+        Assert.AreEqual(s.CompanyId, t.CompanyId);
+        Assert.AreEqual(s.Title, t.Title);
+        Assert.AreEqual(s.Address, t.Address);
+    }
+```
+
+### Dto结构
+
+```csharp
+    [Dto(typeof(DemoContext), typeof(Company))]
+    public partial class CompanyDto {
+        public CompanyDto() { }
+        /// <summary>
+        /// 企业
+        /// </summary>
+        [DtoKey]
+        public Guid CompanyId { get; set; }
+         
+        /// <summary>
+        /// 名称
+        /// </summary>
+        [DtoEditDisable]
+        public string Title { get; set; }      
+
+        /// <summary>
+        /// 地址
+        /// </summary> 
+        public string Address { get; set; }
+    }
+
+    [Dto(typeof(DemoContext), typeof(Personnel))]
+    public partial class PersonnelDto
+    {
+        /// <summary>
+        /// 员工
+        /// </summary>
+        [DtoKey]
+        public Guid PersonnelId { get; set; }
+
+        /// <summary>
+        /// 企业
+        /// </summary>
+        public Guid CompanyId { get; set; }
+
+        /// <summary>
+        /// 姓名 
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// 性别
+        /// </summary>
+        public string Gender { get; set; }
+
+        /// <summary>
+        /// 生日
+        /// </summary>
+        public DateTime? Birthday { get; set; }
+
+        /// <summary>
+        /// 是否在职
+        /// </summary>
+        public bool IsJob { get; set; }
+
+        [DtoForeignKey("Company", "CompanyId", true)]
+        public CompanyDto CompanyDto { get; set; }
+
+        [DtoForeignKey("Achievements", "AchievementsId", true, true)]
+        public List<AchievementsDto> AchievementsDtos { get; set; }
+    }
+
+    [Dto(typeof(DemoContext), typeof(Achievements))]
+    public partial class AchievementsDto
+    {
+        [DtoKey]
+        public Guid AchievementsId { get; set; }
+
+        /// <summary>
+        /// 员工
+        /// </summary>
+        public Guid PersonnelId { get; set; }
+
+        public int? Year { get; set; }
+
+        public string Level { get; set; }
+    }
+```
+
+### EF实体结构
+
+```csharp
+
+    public partial class Company
+    {
+        /// <summary>
+        /// 企业
+        /// </summary>
+        [Key]
+        public Guid CompanyId { get; set; }
+
+        /// <summary>
+        /// 名称
+        /// </summary>
+        [StringLength(50)]
+        public string Title { get; set; }
+
+        /// <summary>
+        /// 地址
+        /// </summary>
+        [Required]
+        [StringLength(200)]
+        public string Address { get; set; }
+
+        [InverseProperty("Company")]
+        public virtual ICollection<Personnel> Personnel { get; } = new List<Personnel>();
+    }
+
+    public partial class Personnel
+    {
+        /// <summary>
+        /// 员工
+        /// </summary>
+        [Key]
+        public Guid PersonnelId { get; set; }
+
+        /// <summary>
+        /// 企业
+        /// </summary>
+        public Guid CompanyId { get; set; }
+
+        /// <summary>
+        /// 姓名
+        /// </summary>
+        [Required]
+        [StringLength(50)]
+        public string Name { get; set; }
+
+        /// <summary>
+        /// 性别
+        /// </summary>
+        [StringLength(50)]
+        public string Gender { get; set; }
+
+        /// <summary>
+        /// 生日
+        /// </summary>
+        [Column(TypeName = "date")]
+        public DateTime? Birthday { get; set; }
+
+        /// <summary>
+        /// 是否在职
+        /// </summary>
+        public bool IsJob { get; set; }
+
+        [InverseProperty("Personnel")]
+        public virtual ICollection<Achievements> Achievements { get; } = new List<Achievements>();
+
+        [ForeignKey("CompanyId")]
+        [InverseProperty("Personnel")]
+        public virtual Company Company { get; set; }
+    }
+
+    public partial class Achievements
+    {
+        [Key]
+        public Guid AchievementsId { get; set; }
+
+        /// <summary>
+        /// 员工
+        /// </summary>
+        public Guid PersonnelId { get; set; }
+
+        public int? Year { get; set; }
+
+        [StringLength(50)]
+        public string Level { get; set; }
+
+        [ForeignKey("PersonnelId")]
+        [InverseProperty("Achievements")]
+        public virtual Personnel Personnel { get; set; }
+    }
 ```

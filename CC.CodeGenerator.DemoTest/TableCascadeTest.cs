@@ -1,14 +1,7 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CC.CodeGenerator.DemoTest;
+﻿namespace CC.CodeGenerator.DemoTest;
 
 [TestClass]
-public class EFTest
+public class TableCascadeTest
 {
     /// <summary>
     /// 级联查询

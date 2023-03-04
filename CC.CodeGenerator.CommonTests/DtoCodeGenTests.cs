@@ -6,7 +6,8 @@
 
 //using Microsoft.CodeAnalysis.CSharp;
 //using Microsoft.CodeAnalysis;
-
+//using CC.CodeGenerator.Common.Reader;
+//using CC.CodeGenerator.Common.DtoStructure;
 
 //namespace CC.CodeGenerator.Common.Tests
 //{
@@ -41,7 +42,7 @@
 //            var code = System.IO.File.ReadAllText(dtoFileName);
 //            SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
 //            SyntaxTreeReader reader = new SyntaxTreeReader();
-//            return reader.AnalysisSyntaxNode(tree.GetRoot());
+//            return reader.AnalysisTypeDeclarationSyntax(tree.GetRoot());
 //        }
 
 //        [TestMethod]

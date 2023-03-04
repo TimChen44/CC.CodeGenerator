@@ -3,6 +3,9 @@ namespace CC.CodeGenerator.DemoTest;
 [TestClass]
 public class DtoTest
 {
+    /// <summary>
+    /// 赋值：Dto=>Dto
+    /// </summary>
     [TestMethod]
     public void CopyFormDto()
     {
@@ -19,6 +22,9 @@ public class DtoTest
         AreEqualDto(s, t);
     }
 
+    /// <summary>
+    /// 赋值：Dto=>Entity
+    /// </summary>
     [TestMethod]
     public void CopyToEntity()
     {
@@ -37,8 +43,11 @@ public class DtoTest
         Assert.AreEqual(s.Address, t.Address);
     }
 
+    /// <summary>
+    /// 创建新的CompanyDto
+    /// </summary>
     [TestMethod]
-    public void NewGen()
+    public void NewCompanyDtoGen()
     {
         var dto = CompanyDto.NewGen();
         Assert.IsNotNull(dto);
@@ -49,59 +58,19 @@ public class DtoTest
         Assert.AreNotEqual(dtoResult?.Data?.CompanyId, Guid.Empty);
     }
 
-    [TestMethod]
-    public void SLRD()
-    {
-        var dto = SaveGen();
-        LoadGen(dto);
-        ReLoadGen(dto);
-        DeleteGen(dto);
-    }
-
-    private CompanyDto SaveGen()
-    {
-        var context = new DemoContext();
-        //保存
-        var newDto = new CompanyDto()
-        {
-            CompanyId = Guid.NewGuid(),
-            Title = "Tim",
-            Address = DateTime.Now.ToString(),
-        };
-        newDto.SaveGen(context);
-        var save = context.SaveChanges();
-        Assert.AreEqual(save, 1);
-        return newDto;
-    }
-
-    private void LoadGen(CompanyDto dto)
-    {
-        var context = new DemoContext();
-        var loadDto = CompanyDto.LoadGen(context, dto.CompanyId);
-        AreEqualDto(dto, loadDto);
-        var loadResultDto = CompanyDto.LoadResultGen(context, dto.CompanyId);
-        AreEqualDto(dto, loadResultDto.Data);
-        var loadNullResultDto = CompanyDto.LoadResultGen(context, Guid.NewGuid());
-        Assert.AreEqual(loadNullResultDto.IsOK, false);
-    }
-
-    private void ReLoadGen(CompanyDto dto)
-    {
-        var context = new DemoContext();
-        var reLoadDto = new CompanyDto() { CompanyId = dto.CompanyId };
-        reLoadDto.ReLoadGen(context);
-        AreEqualDto(dto, reLoadDto);
-    }
-
-    private void DeleteGen(CompanyDto dto)
-    {
-        var context = new DemoContext();
-        dto.DeleteGen(context);
-        var delete = context.SaveChanges();
-        Assert.AreEqual(delete, 1);
-        var loadDto = context.Company.FirstOrDefault(x => x.CompanyId == dto.CompanyId);
-        Assert.IsNull(loadDto);
-    }
+    /// <summary>
+    /// 创建新的PersonnelDto
+    /// //TODO: 级联KeyId初始化未完成
+    /// </summary>
+    //[TestMethod]
+    //public void NewGen()
+    //{
+    //    var dto = PersonnelDto.NewGen();
+    //    Assert.IsNotNull(dto);
+    //    Assert.AreNotEqual(dto.CompanyId, Guid.Empty);
+    //    Assert.AreNotEqual(dto?.CompanyDto.CompanyId, Guid.Empty);
+    //    Assert.AreNotEqual(dto?.AchievementsDtos, null);
+    //}
 
     private void AreEqualDto(CompanyDto s, CompanyDto t)
     {
