@@ -8,15 +8,15 @@ namespace CC.CodeGenerator;
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public class DtoAttribute : Attribute
 {
-    public DtoAttribute(string context, Type entity)
+    public DtoAttribute(Type dbContext, Type entity)
     {
-        Context = context;
+        Context = dbContext;
         Entity = entity;
     }
     /// <summary>
-    /// EF Core上下文名字
+    /// EF Core上下类型
     /// </summary>
-    public string Context { get; set; }
+    public Type Context { get; set; }
 
     /// <summary>
     /// EF 实体类型
@@ -24,9 +24,20 @@ public class DtoAttribute : Attribute
     public Type Entity { get; set; }
 }
 
-//标记属性是否需要忽略
+/// <summary>
+/// 标记属性是否需要忽略
+/// </summary>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
 public class DtoIgnoreAttribute : Attribute
+{
+
+}
+
+/// <summary>
+/// 标记属性是否不可编辑
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+public class DtoEditDisableAttribute : Attribute
 {
 
 }
@@ -35,13 +46,29 @@ public class DtoIgnoreAttribute : Attribute
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
 public class DtoForeignKeyAttribute : Attribute
 {
+    public string ForeignTable { get; }
     public string ForeignKey { get; }
-    public bool AllowNull { get; }
+    public bool AutoCascadeSave { get; }
+    public bool AutoDeleteExcess { get; }
 
-    public DtoForeignKeyAttribute(string foreignKey, bool allowNull = true)
+    public DtoForeignKeyAttribute(string foreignTable,string foreignKey, bool autoCascadeSave = true, bool autoDeleteExcess = true)
     {
+        ForeignTable = foreignTable;
         ForeignKey = foreignKey;
-        AllowNull = allowNull;
+        AutoCascadeSave = autoCascadeSave;
+        AutoDeleteExcess = autoDeleteExcess;
+    }
+}
+
+
+//标记对象的外键
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+public class DtoKeyAttribute : Attribute
+{
+
+    public DtoKeyAttribute()
+    {
+
     }
 
 }

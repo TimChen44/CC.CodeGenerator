@@ -1,8 +1,13 @@
-﻿using CC.CodeGenerator.Builder;
+﻿using CC.CodeGenerator.Common;
+using CC.CodeGenerator.Common.DtoStructure;
+using CC.CodeGenerator.Common.Reader;
 using CC.CodeGenerator.Definition;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace CC.CodeGenerator
@@ -13,10 +18,10 @@ namespace CC.CodeGenerator
         public void Initialize(GeneratorInitializationContext context)
         {
 #if DEBUG
-            if (!Debugger.IsAttached)
-            {
-                Debugger.Launch();
-            }
+            //if (!Debugger.IsAttached)
+            //{
+            //    Debugger.Launch();
+            //}
 #endif
 
             //注册一个语法修改通知
@@ -39,55 +44,46 @@ namespace CC.CodeGenerator
             }
         }
 
+
+        private static readonly DiagnosticDescriptor GeneratorError = new DiagnosticDescriptor(id: "CC001",
+                                                                                              title: "Dto扩展代码生成失败",
+                                                                                              messageFormat: "生成Dto扩展代码发生异常 '{0}'.",
+                                                                                              category: "CodeGenerator",
+                                                                                              DiagnosticSeverity.Error,
+                                                                                              isEnabledByDefault: true);
+
         public void Execute(GeneratorExecutionContext context)
         {
-            if (!(context.SyntaxReceiver is CodeSyntaxReceiver receiver)) return;
-
-            //把DtoAttribute加入当前的编译中
-            Compilation compilation = context.Compilation;
-
-            LoadTool loadTool = new LoadTool(compilation);
-
-            //创建Dto扩展
-            foreach (TypeDeclarationSyntax typeSyntax in receiver.CandidateClasses)
+//#if DEBUG
+//            if (!Debugger.IsAttached)
+//            {
+//                Debugger.Launch();
+//            }
+//#endif
+            try
             {
-                try
+                if (!context.Compilation.ReferencedAssemblyNames.Any(ai => ai.Name.Equals("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase)))
                 {
-                    //获得类的类型符号,如果无法获得，就跳出
-                    if (compilation.GetSemanticModel(typeSyntax.SyntaxTree).GetDeclaredSymbol(typeSyntax) is not ITypeSymbol typeSymbol) return;
-
-                    var typeData = loadTool.CreateTypeData(typeSymbol);
-
-                    if (typeData == null) continue;//如果没有必要的特性，就跳过
-
-                    //实体操作
-                    var mapCreater = new MapCreate(typeSymbol);
-
-                    var extCode = new ClassCodeBuilder(typeSymbol, "ext") { IsExtension = true };
-
-                    if (typeData.DtoAttr != null)
-                    {
-                        var dtoBuilder = new ClassCodeBuilder(typeSymbol, "dto");
-                        var dtoCreater = new DtoCreate(typeSymbol, typeData);
-                        dtoCreater.CreateCode(dtoBuilder, extCode);
-                        mapCreater.CreateDtoCode(dtoBuilder, typeData,dtoCreater.EntitySymbol);
-                        dtoBuilder.WriteCode(context);
-                    }
-
-                    if (typeData.MappingAttr != null)
-                    {
-                        var mapBuilder = new ClassCodeBuilder(typeSymbol, "map");
-                        mapCreater.CreateMapCode(mapBuilder, typeData);
-                        mapBuilder.WriteCode(context);
-                    }
-
-                    extCode.WriteCode(context);
+                    context.ReportDiagnostic(Diagnostic.Create(GeneratorError, Location.None, "缺少 Microsoft.EntityFrameworkCore"));
                 }
-                catch (Exception ex)
+
+                if (!(context.SyntaxReceiver is CodeSyntaxReceiver receiver)) return;
+                //创建Dto扩展
+                foreach (TypeDeclarationSyntax typeSyntax in receiver.CandidateClasses)
                 {
-                    Debug.WriteLine(ex.ToString());
+                    SyntaxTreeReader reader = new SyntaxTreeReader();
+                    var dtoClass = reader.AnalysisTypeDeclarationSyntax(typeSyntax);
+                    if (dtoClass == null) continue;
+                    DtoCodeGen ctoCodeGen = new DtoCodeGen(dtoClass);
+                    var genCode = ctoCodeGen.GenCode();
+                    context.AddSource($"{dtoClass.DtoConfig.DtoNamespace}.{dtoClass.Name}.g.cs", SourceText.From(genCode, Encoding.UTF8));
                 }
             }
+            catch (Exception ex)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(GeneratorError, Location.None, ex.ToString()));
+            }
+
         }
     }
 }

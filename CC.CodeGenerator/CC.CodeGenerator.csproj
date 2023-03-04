@@ -2,12 +2,12 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<LangVersion>10</LangVersion>
-		<Description>常见简单业务的代码自动生成，解放劳动力</Description>
+		<LangVersion>11</LangVersion>
+		<Description>常见简单业务的代码自动生成，解放劳动力。</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageOutputPath>../Packages/</PackageOutputPath>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>1.9.1.0725</Version>
+		<Version>2023.3.0304</Version>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<PackageProjectUrl>https://github.com/TimChen44/CC.CodeGenerator</PackageProjectUrl>
 	</PropertyGroup>
@@ -25,15 +25,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\CC.CodeGenerator.Attribute\CC.CodeGenerator.Attribute.csproj" />
+		<ProjectReference Include="..\CC.CodeGenerator.Common\CC.CodeGenerator.Common.csproj"/>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Creater\" />
 	</ItemGroup>
 
 </Project>
