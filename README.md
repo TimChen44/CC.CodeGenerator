@@ -84,11 +84,6 @@ global CC.Core
                  CompanyDto = x.Company.ToCompanyDto(),
                  AchievementsDtos = x.Achievements.ToAchievementsDtos(),
              }).FirstOrDefault();
-
-        Assert.IsNotNull(personne);
-        Assert.AreNotEqual(personne.PersonnelId, Guid.Empty);
-        Assert.IsNotNull(personne.CompanyDto);
-        Assert.IsNotNull(personne.AchievementsDtos);
     }
 
     /// <summary>
@@ -100,11 +95,6 @@ global CC.Core
         var context = new DemoContext();
 
         var personne = PersonnelDto.LoadGen(context, new Guid("92c26f2e-1dda-4c0b-9279-a4a66560d4be"));
-
-        Assert.IsNotNull(personne);
-        Assert.AreNotEqual(personne.PersonnelId, Guid.Empty);
-        Assert.IsNotNull(personne.CompanyDto);
-        Assert.IsNotNull(personne.AchievementsDtos);
     }
 
     /// <summary>
