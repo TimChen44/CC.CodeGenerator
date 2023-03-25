@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="CC.NetCore" Version="2023.1.304" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\CC.CodeGenerator.Attribute\CC.CodeGenerator.Attribute.csproj" />
+		<ProjectReference Include="..\CC.CodeGenerator.Common\CC.CodeGenerator.Common.csproj"  OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+		<ProjectReference Include="..\CC.CodeGenerator.DemoEntity\CC.CodeGenerator.DemoEntity.csproj" />
+		<ProjectReference Include="..\CC.CodeGenerator\CC.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>
