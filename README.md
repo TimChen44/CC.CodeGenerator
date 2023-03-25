@@ -8,9 +8,7 @@
 
 ### 视频介绍
 
-https://www.bilibili.com/video/BV1Am4y1S7QT?share_source=copy_web
-https://www.bilibili.com/video/BV1a3411Y7xb?share_source=copy_web
-https://www.bilibili.com/video/BV14m4y1S7Ne?share_source=copy_web
+https://www.bilibili.com/video/BV1sL411y79i/?spm_id_from=333.999.0.0
 
 # 使用方法
 
