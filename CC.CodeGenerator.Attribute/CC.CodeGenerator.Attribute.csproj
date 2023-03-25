@@ -7,7 +7,7 @@
 		<Description>常见简单业务的代码自动生成，解放劳动力。用于CC.CodeGenerator组件</Description>
 		<PackageOutputPath>../Packages/</PackageOutputPath>
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Version>2023.3.0304</Version>
+		<Version>2023.4.0325</Version>
 		<RootNamespace>CC.CodeGenerator</RootNamespace>
 	</PropertyGroup>
 	
